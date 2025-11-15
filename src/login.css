@@ -1,0 +1,88 @@
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  background: linear-gradient(135deg, #081229 0%, #0e204a 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #f5f7ff;
+}
+
+.loginForm {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 40px 36px;
+  width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.25);
+  animation: fadeIn 0.8s ease forwards;
+}
+
+.loginForm h1 {
+  text-align: center;
+  margin-bottom: 10px;
+  font-size: 28px;
+  color: #0d2040;
+  letter-spacing: 0.5px;
+}
+
+.loginForm label {
+  color: #0d2040;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.loginForm input {
+  padding: 12px 14px;
+  font-size: 16px;
+  color: #0a0a0a;
+  background: #f7f9ff;
+  border: 2px solid #a2b6ff;
+  border-radius: 8px;
+  outline: none;
+  transition: 0.3s ease;
+}
+
+.loginForm input:focus {
+  border-color: #0048ff;
+  box-shadow: 0 0 8px rgba(0, 72, 255, 0.4);
+  background: #ffffff;
+}
+
+.loginForm button {
+  margin-top: 10px;
+  padding: 12px;
+  font-size: 17px;
+  font-weight: bold;
+  background: linear-gradient(90deg, #0048ff, #006dff);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 15px rgba(0, 72, 255, 0.3);
+}
+
+.loginForm button:hover {
+  background: linear-gradient(90deg, #006dff, #0048ff);
+  transform: translateY(-2px);
+}
+
+.loginForm button:active {
+  transform: scale(0.98);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
