@@ -3,7 +3,9 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
+
 import authRoutes from "./routes/authRoutes.js";
+import gmailRoutes from "./routes/gmailRoutes.js";
 
 dotenv.config();
 
@@ -20,6 +22,9 @@ app.get("/", (req, res) => {
 
 // auth routes
 app.use("/auth", authRoutes);
+
+// Gmail + AI routes
+app.use("/gmail", gmailRoutes);
 
 // connect to MongoDB and start server
 const PORT = process.env.PORT || 5000;
