@@ -1,0 +1,298 @@
+/* personPage.css */
+.container {
+  font-family: "Arial, sans-serif";
+  min-height: 100vh;
+  background-color: #f0f7ff;
+  padding: 0;
+  margin: 0;
+}
+
+.header {
+  background-color: #1e40af;
+  color: white;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.mainContent {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.tabsContainer {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.tabButtons {
+  display: flex;
+  background-color: #e0e7ff;
+  border-bottom: 2px solid #1e40af;
+}
+
+.tabButton {
+  flex: 1;
+  padding: 15px 20px;
+  border: none;
+  background-color: transparent;
+  color: #1e40af;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s;
+  border-bottom: 3px solid transparent;
+}
+
+.activeTab {
+  background-color: white;
+  border-bottom: 3px solid #1e40af;
+  color: #1e40af;
+}
+
+.tabContent {
+  padding: 30px;
+  min-height: 400px;
+}
+
+.input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.textarea {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  min-height: 120px;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.button {
+  background-color: #1e40af;
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: background-color 0.3s;
+  margin-right: 10px;
+}
+
+.taskItem {
+  background-color: #f0f7ff;
+  padding: 15px;
+  margin-bottom: 15px;
+  border-radius: 6px;
+  border-left: 4px solid #1e40af;
+}
+
+.taskInfo {
+  flex: 1;
+  margin-bottom: 10px;
+}
+
+.taskText {
+  margin: 0 0 5px 0;
+  font-weight: bold;
+  color: #333;
+  font-size: 16px;
+}
+
+.taskTime {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 10px;
+}
+
+.editButton {
+  background-color: #2563eb;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.deleteButton {
+  background-color: #dc2626;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.saveButton {
+  background-color: #16a34a;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.cancelButton {
+  background-color: #6b7280;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.chatMessages {
+  background-color: #f9fafb;
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  height: 350px;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+}
+
+.message {
+  margin-bottom: 12px;
+  padding: 10px;
+  border-radius: 6px;
+  max-width: 70%;
+}
+
+.userMessage {
+  background-color: #1e40af;
+  color: white;
+  margin-left: auto;
+  text-align: right;
+}
+
+.supportMessage {
+  background-color: white;
+  color: #333;
+  margin-right: auto;
+  border: 1px solid #e0e0e0;
+}
+
+.messageSender {
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 4px;
+  opacity: 0.8;
+}
+
+.messageText {
+  margin: 0;
+  font-size: 14px;
+}
+
+.inputGroup {
+  display: flex;
+  gap: 10px;
+}
+
+.flexInput {
+  flex: 1;
+}
+
+.emptyState {
+  text-align: center;
+  color: #999;
+  padding: 40px;
+  font-size: 14px;
+}
+
+.editInputSmall {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.button:hover {
+  background-color: #1e3a8a;
+}
+
+.deleteButton:hover {
+  background-color: #b91c1c;
+}
+
+.messageButton {
+  background-color: #2563eb;
+  color: white;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.messageDeleteButton {
+  background-color: #dc2626;
+  color: white;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.currentNotes {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f0f7ff;
+  border-radius: 6px;
+}
+
+.currentNotes h3 {
+  color: #1e40af;
+  margin-top: 0;
+}
+
+.currentNotes p {
+  color: #333;
+  white-space: pre-wrap;
+}
+
+.tabHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
