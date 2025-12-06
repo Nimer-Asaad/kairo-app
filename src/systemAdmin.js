@@ -318,6 +318,8 @@ const handleConnectGmail = () => {
       return;
     }
 
+    
+
     try {
       setCvLoading(true);
       setCvResults([]);
