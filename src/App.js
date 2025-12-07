@@ -3,7 +3,7 @@ import "./App.css";
 import MainPage from "./mainpage.js";
 import SignUp from "./signup.js";
 import Login from "./login.js";
-
+import EmailsForm from "./emailsForm.js";
 import TaskManagementSystem from "./managerTasks.js";
 import EmployeeDashboard from "./employeeTasks.js";
 import AdminDashboard from "./systemAdmin.js";
@@ -34,6 +34,9 @@ function App() {
           <Link to="/signup">
             <button>Sign Up</button>
           </Link>
+          <Link to="/emailsForm">
+            <button>Form</button>
+          </Link>
         </nav>
 
         <Routes>
@@ -47,6 +50,7 @@ function App() {
           <Route path="/hr" element={<HRDashboard />} />
           <Route path="/employeeTasks" element={<EmployeeDashboard />} />
           <Route path="/manager" element={<TaskManagementSystem />} />
+          <Route path="/emailsForm" element={<EmailsForm />} />
         </Routes>
       </div>
     </BrowserRouter>

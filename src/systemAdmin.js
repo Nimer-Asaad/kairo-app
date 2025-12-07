@@ -190,9 +190,9 @@ const AdminDashboard = () => {
       }
 
       alert(
-        `User created successfully!\nEmail: ${data.user.email}\nTemporary Password: ${
-          data.temp_password || "123456"
-        }`
+        `User created successfully!\nEmail: ${
+          data.user.email
+        }\nTemporary Password: ${data.temp_password || "123456"}`
       );
 
       setStaffForm({
@@ -268,20 +268,19 @@ const AdminDashboard = () => {
 
   // ===== Gmail + AI CV Tools Handlers =====
 
- // ربط حساب Gmail بالسيستم (OAuth)
-const handleConnectGmail = () => {
-  const token = localStorage.getItem("token");
+  // ربط حساب Gmail بالسيستم (OAuth)
+  const handleConnectGmail = () => {
+    const token = localStorage.getItem("token");
 
-  if (!token) {
-    alert("Session expired, please log in again.");
-    navigate("/login");
-    return;
-  }
+    if (!token) {
+      alert("Session expired, please log in again.");
+      navigate("/login");
+      return;
+    }
 
-  // نبعت التوكن كـ query param
-  window.location.href = `http://localhost:5000/gmail/auth?token=${token}`;
-};
-
+    // نبعت التوكن كـ query param
+    window.location.href = `http://localhost:5000/gmail/auth?token=${token}`;
+  };
 
   // تحميل آخر إيميلات من Gmail (من الباك إند)
   const handleLoadGmailEmails = async () => {
@@ -317,8 +316,6 @@ const handleConnectGmail = () => {
       alert("اكتب متطلبات الوظيفة أولاً");
       return;
     }
-
-    
 
     try {
       setCvLoading(true);
@@ -687,10 +684,7 @@ const handleConnectGmail = () => {
               </h3>
               <div className="messages-area">
                 {(messages[chatKey] || []).map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`message message-${msg.sender}`}
-                  >
+                  <div key={msg.id} className={`message message-${msg.sender}`}>
                     <div>{msg.text}</div>
                     <div className="message-time">{msg.timestamp}</div>
                   </div>
