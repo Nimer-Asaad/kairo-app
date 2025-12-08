@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import "./mainpage.css";
 import Login from "./login.js";
 import SignUp from "./signup.js";
+import manageImage from "./manege.webp";
+import { Link } from "react-router-dom";
 
 export default function MainPage() {
   const [showLogin, setShowLogin] = useState({ login: false, signup: false });
@@ -28,7 +30,7 @@ export default function MainPage() {
       <header className="navbar">
         <div className="logo">
           <div className="logo-bar"></div>
-          <h1>OurProject</h1>
+          <h1>Task Management System</h1>
         </div>
 
         <div className="auth-buttons">
@@ -41,18 +43,28 @@ export default function MainPage() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="hero">
-        <h2>Daily Task Management</h2>
-        <p>
-          Quickly and easily set up new projects, assign and share tasks, add
-          comments and notes, share file library, send and receive
-          notifications. All data is synchronized across all your team members
-          and devices.
-        </p>
-        <div className="hero-buttons">
-          <button className="get-started">Get Started</button>
-          <button className="discover">Discover Features</button>
+      {/* Hero Section - Updated layout */}
+      <section className="heroo">
+        <div className="heroo-container">
+          <div className="heroo-image">
+            <img src={manageImage} alt="Daily Task Management" />
+          </div>
+          <div className="heroo-content">
+            <h2 style={{ color: "black" }}>Task Management</h2>
+            <h3 style={{ color: "black" }}>Daily Task Management</h3>
+            <p>
+              Quickly and easily set up new projects, assign and share tasks,
+              add comments and notes, share file library, send and receive
+              notifications. All data is synchronized across all your team
+              members and devices.
+            </p>
+            <div className="heroo-buttons">
+              <button className="get-started">Get Started</button>
+              <Link to="/FeaturesPage">
+                <button className="discover">Discover Features</button>
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 

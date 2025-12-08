@@ -72,34 +72,70 @@ nav a:hover {
   background-color: #333;
 }
 
-/* Hero Section */
-.hero {
-  text-align: center;
-  padding: 90px 20px 50px;
+/* Hero Section - Updated for image on left */
+.heroo {
+  padding: 60px 80px;
   background-color: #f9f9fb;
 }
 
-.hero h2 {
-  font-size: 52px;
-  font-weight: 800;
-  margin-bottom: 20px;
+.heroo-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 60px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.hero p {
-  max-width: 720px;
-  margin: 0 auto 40px;
-  color: #666;
-  font-size: 18px;
-  line-height: 1.6;
-}
-
-.hero-buttons {
+.heroo-image {
+  flex: 1;
   display: flex;
   justify-content: center;
-  gap: 16px;
 }
 
-.hero-buttons button {
+.heroo-image img {
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  object-fit: cover;
+}
+
+.heroo-content {
+  flex: 1;
+  text-align: left;
+  max-width: 550px;
+}
+
+.heroo h2 {
+  font-size: 48px;
+  font-weight: 800;
+  margin-bottom: 10px;
+  color: #111;
+}
+
+.heroo h3 {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.heroo p {
+  color: #666;
+  font-size: 18px;
+  line-height: 1.7;
+  margin-bottom: 35px;
+}
+
+.heroo-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: flex-start;
+}
+
+.heroo-buttons button {
   font-size: 16px;
   font-weight: 600;
   padding: 14px 28px;
@@ -127,8 +163,6 @@ nav a:hover {
 .discover:hover {
   background-color: #f3f3f3;
 }
-
-/* Dashboard Section */
 
 /* Footer */
 .footer {
@@ -216,6 +250,43 @@ nav a:hover {
   padding: 10px; /* Reduced padding */
 }
 
+/* Features modal */
+.features-modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1200;
+}
+
+.features-modal-content {
+  background: #fff;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 1100px;
+  max-height: 90vh;
+  overflow: auto;
+  padding: 24px;
+  position: relative;
+}
+
+.close-features-btn {
+  position: absolute;
+  right: 12px;
+  top: 8px;
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: #666;
+}
+
+.close-features-btn:hover {
+  color: #111;
+}
+
 /* Reduce space for radio buttons */
 .signup-container .signupForm .radio-group {
   margin: 5px 0;
@@ -242,4 +313,43 @@ nav a:hover {
 
 .signup-container .close-btn:hover {
   color: #333;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 1024px) {
+  .heroo-container {
+    gap: 40px;
+  }
+
+  .heroo-image img {
+    max-width: 500px;
+  }
+}
+
+@media (max-width: 768px) {
+  .heroo {
+    padding: 40px 20px;
+  }
+
+  .heroo-container {
+    flex-direction: column;
+    gap: 40px;
+  }
+
+  .heroo-content {
+    text-align: center;
+    max-width: 100%;
+  }
+
+  .heroo-buttons {
+    justify-content: center;
+  }
+
+  .heroo-image img {
+    max-width: 100%;
+  }
+
+  .navbar {
+    padding: 20px;
+  }
 }

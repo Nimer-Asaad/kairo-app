@@ -1,0 +1,591 @@
+/* Reset and Base Styles */
+.subscription-form-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, sans-serif;
+}
+
+.form-content-wrapper {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Authentication Status Bar */
+.auth-status-panel {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 30px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 2px solid #e0e0e0;
+}
+
+.auth-status-content-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.auth-status--logged-in {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #10b981;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.auth-status-icon--check {
+  font-size: 24px;
+}
+
+.auth-status--warning {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #ef4444;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.auth-status-icon--warning {
+  font-size: 24px;
+}
+
+.auth-buttons-container {
+  display: flex;
+  gap: 12px;
+}
+
+.auth-action-button {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.auth-action-button--login {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.auth-action-button--signup {
+  background: #10b981;
+  color: white;
+}
+
+.auth-action-button--logout {
+  padding: 10px 20px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.auth-action-button:hover,
+.auth-action-button--logout:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Subscription Form */
+.subscription-form-content {
+  background: white;
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.subscription-form-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1f2937;
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+/* Selection Groups */
+.option-selector-group {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.option-selector-button {
+  flex: 1;
+  padding: 16px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.option-selector-button--active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.option-selector-button--inactive {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.option-selector-button--inactive:hover {
+  background: #e5e7eb;
+  transform: translateY(-2px);
+}
+
+.option-selector-button--yearly {
+  position: relative;
+}
+
+.savings-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #10b981;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Pricing Display */
+.pricing-display-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  padding: 40px;
+  text-align: center;
+  margin-bottom: 32px;
+  position: relative;
+  overflow: hidden;
+}
+
+.pricing-display-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle at top right,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  pointer-events: none;
+}
+
+.pricing-display-amount {
+  font-size: 56px;
+  font-weight: 800;
+  color: white;
+  margin-bottom: 8px;
+}
+
+.pricing-display-period {
+  font-size: 20px;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 12px;
+}
+
+.pricing-display-savings {
+  font-size: 18px;
+  color: #10b981;
+  font-weight: 600;
+}
+
+/* Payment Method Section */
+.payment-method-section {
+  margin-bottom: 32px;
+}
+
+.section-heading {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 20px;
+}
+
+.payment-method-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .payment-method-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.payment-method-button {
+  padding: 20px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.payment-method-button--active {
+  background: #4f46e5;
+  color: white;
+  box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
+}
+
+.payment-method-button--inactive {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.payment-method-button--inactive:hover {
+  background: #e5e7eb;
+  transform: translateY(-2px);
+}
+
+/* Form Inputs */
+.form-inputs-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.form-input-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .form-input-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-input-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.form-input-field {
+  padding: 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.form-input-field:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-input-field:disabled {
+  background: #f3f4f6;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Payment Info Messages */
+.payment-info-message {
+  background: #eff6ff;
+  border: 2px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 24px;
+  text-align: center;
+}
+
+.payment-info-message p {
+  color: #1e40af;
+  font-size: 16px;
+  margin: 0;
+}
+
+/* Submit Button */
+.subscription-submit-button {
+  padding: 20px;
+  border: none;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.subscription-submit-button--gradient {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.subscription-submit-button--gradient:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+}
+
+.subscription-submit-button--gradient::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.5s;
+}
+
+.subscription-submit-button--gradient:hover::before {
+  left: 100%;
+}
+
+.subscription-submit-button--disabled {
+  background: #d1d5db;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+.subscription-terms-notice {
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
+  margin-top: 16px;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-content-container {
+  background: white;
+  border-radius: 20px;
+  padding: 40px;
+  width: 100%;
+  max-width: 480px;
+  position: relative;
+  animation: slideIn 0.3s ease-out;
+}
+
+.modal-close-button {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.3s ease;
+}
+
+.modal-close-button:hover {
+  transform: rotate(90deg);
+  background: #e5e7eb;
+}
+
+.modal-header-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1f2937;
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+/* Authentication Form */
+.auth-form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.radio-options-group {
+  display: flex;
+  gap: 24px;
+  margin-top: 8px;
+}
+
+.radio-option-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.radio-option-input {
+  width: 20px;
+  height: 20px;
+  accent-color: #667eea;
+  cursor: pointer;
+}
+
+.radio-option-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.auth-form-submit-button {
+  padding: 18px;
+  border: none;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 16px;
+}
+
+.auth-form-switch {
+  text-align: center;
+  margin-top: 24px;
+  color: #6b7280;
+}
+
+.auth-form-switch-link {
+  color: #667eea;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.auth-form-switch-link:hover {
+  color: #5a67d8;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pulseAnimation {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animation-pulse {
+  animation: pulseAnimation 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .subscription-form-content {
+    padding: 24px;
+  }
+
+  .subscription-form-title {
+    font-size: 28px;
+  }
+
+  .pricing-display-amount {
+    font-size: 48px;
+  }
+
+  .modal-content-container {
+    padding: 32px 24px;
+  }
+
+  .modal-header-title {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .subscription-form-container {
+    padding: 16px;
+  }
+
+  .subscription-form-content {
+    padding: 20px;
+  }
+
+  .subscription-form-title {
+    font-size: 24px;
+  }
+
+  .option-selector-group {
+    flex-direction: column;
+  }
+
+  .pricing-display-amount {
+    font-size: 40px;
+  }
+
+  .auth-status-content-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .auth-buttons-container {
+    justify-content: stretch;
+  }
+
+  .auth-action-button {
+    flex: 1;
+  }
+}

@@ -9,6 +9,8 @@ import EmployeeDashboard from "./employeeTasks.js";
 import AdminDashboard from "./systemAdmin.js";
 import HRDashboard from "./HR.js";
 import PersonPage from "./personPage.js";
+import FeaturesPage from "./FeaturesPage.js";
+import SubscriptionFormPage from "./SubscriptionFormPage.js";
 
 import { BrowserRouter, Route, Routes, Link } from "react-router-dom";
 
@@ -37,6 +39,12 @@ function App() {
           <Link to="/emailsForm">
             <button>Form</button>
           </Link>
+          <Link to="/FeaturesPage">
+            <button>feature</button>
+          </Link>
+          <Link to="/SubscriptionFormPage">
+            <button>sub</button>
+          </Link>
         </nav>
 
         <Routes>
@@ -51,6 +59,11 @@ function App() {
           <Route path="/employeeTasks" element={<EmployeeDashboard />} />
           <Route path="/manager" element={<TaskManagementSystem />} />
           <Route path="/emailsForm" element={<EmailsForm />} />
+          <Route path="/FeaturesPage" element={<FeaturesPage />} />
+          <Route
+            path="/SubscriptionFormPage"
+            element={<SubscriptionFormPage />}
+          />
         </Routes>
       </div>
     </BrowserRouter>
