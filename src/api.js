@@ -1,10 +1,19 @@
 // src/api.js
-export const API_URL = "http://localhost:5000"; 
+export const API_URL = "http://localhost:5000";
+
+function getAuthHeaders() {
+  const token = localStorage.getItem("token");
+  const headers = { "Content-Type": "application/json" };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+}
 
 export async function apiPost(path, body) {
   const res = await fetch(`${API_URL}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getAuthHeaders(),
     body: JSON.stringify(body),
   });
 
@@ -17,10 +26,10 @@ export async function apiPost(path, body) {
   return data;
 }
 
-// 🆕 GET helper
+// GET helper
 export async function apiGet(path) {
   const res = await fetch(`${API_URL}${path}`, {
-    headers: { "Content-Type": "application/json" },
+    headers: getAuthHeaders(),
   });
 
   const data = await res.json().catch(() => ({}));

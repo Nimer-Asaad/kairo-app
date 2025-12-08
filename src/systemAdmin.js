@@ -174,14 +174,14 @@ const AdminDashboard = () => {
       const data = await apiPost("/auth/create-user", body);
 
       const newUser = {
-        id: data.user._id, // مهم توحيد الاسم مع Mongo
-        name: data.user.full_name,
-        email: data.user.email,
-        phone: staffForm.phone || "",
-        address: staffForm.address || "",
-        status: staffForm.status,
-        type: staffForm.role,
-      };
+      id: data.user.id, // ✅ نفس اللي رجعناه من الباك
+      name: data.user.full_name,
+      email: data.user.email,
+      phone: staffForm.phone || "",
+      address: staffForm.address || "",
+      status: staffForm.status,
+      type: staffForm.role,
+    };
 
       if (staffForm.role === "hr") {
         setHrs((prev) => [...prev, newUser]);
