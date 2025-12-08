@@ -3,6 +3,7 @@ import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import auth from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -104,11 +105,16 @@ router.post("/login", async (req, res) => {
 });
 
 // GET /auth/users  --> ترجع كل المستخدمين (لصفحة الأدمن)
-router.get("/users", async (req, res) => {
+router.get("/users", auth, async (req, res) => {
   try {
+    // بس company مسموح
+    if (req.user.role !== "company") {
+      return res.status(403).json({ message: "Not allowed" });
+    }
+
     const users = await User.find(
       {},
-      "full_name email role is_active createdAt"
+      "full_name email role is_active phone address company_id"
     );
 
     res.json({ users });
@@ -118,17 +124,30 @@ router.get("/users", async (req, res) => {
   }
 });
 
+
 // POST /auth/create-user  --> الأدمن ينشئ HR / Employee / Manager
-router.post("/create-user", async (req, res) => {
+router.post("/create-user", auth, async (req, res) => {
   try {
-    const { full_name, email, role, password } = req.body;
+    // بس company يقدر ينشئ موظفين
+    if (req.user.role !== "company") {
+      return res.status(403).json({ message: "Not allowed" });
+    }
+
+    const {
+      full_name,
+      email,
+      role,
+      password,
+      phone,
+      address,
+      is_active,
+    } = req.body;
 
     if (!full_name || !email || !role) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
     const allowedRoles = ["hr", "employee", "manager"];
-
     if (!allowedRoles.includes(role)) {
       return res.status(400).json({ message: "Invalid role" });
     }
@@ -146,7 +165,10 @@ router.post("/create-user", async (req, res) => {
       email,
       password_hash: hash,
       role,
-      is_active: true,
+      phone,
+      address,
+      is_active: typeof is_active === "boolean" ? is_active : true,
+      company_id: req.user.id, // 🔗 ربطه بالشركة اللي عاملاه
     });
 
     res.status(201).json({
@@ -156,13 +178,17 @@ router.post("/create-user", async (req, res) => {
         full_name: user.full_name,
         email: user.email,
         role: user.role,
+        phone: user.phone,
+        address: user.address,
+        company_id: user.company_id,
       },
-      temp_password: finalPassword, // عشان تعطيه للموظف
+      temp_password: finalPassword, // تعطيه للموظف
     });
   } catch (err) {
     console.error("Create-user error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 export default router;
