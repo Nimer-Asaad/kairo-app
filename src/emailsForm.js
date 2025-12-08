@@ -119,8 +119,7 @@ const GmailModalDemo = () => {
   if (!isModalOpen) return null;
 
   return (
-    <div className="gmail-modal-overlay">
-      <div className="gmail-modal">
+  <div className="gmail-card-wrapper">      <div className="gmail-modal">
         <button
           className="close-button"
           onClick={() => setIsModalOpen(false)}

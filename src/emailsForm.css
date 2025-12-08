@@ -49,6 +49,19 @@
   background: #a8a8a8;
 }
 
+/* بدل ما تكون اوفرلاي فول سكرين */
+.gmail-modal-overlay {
+  position: static;
+  inset: auto;
+  background: transparent;
+  padding: 0;
+}
+
+/* أو استخدم الكلاس الجديد لو حاب */
+.gmail-card-wrapper {
+  width: 100%;
+}
+
 .close-button {
   position: sticky;
   top: 20px;

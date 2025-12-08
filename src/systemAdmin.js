@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from "react";
 import "./systemAdmin.css";
 import { apiGet, apiPost } from "./api";
-import { useNavigate } from "react-router-dom";
+import GmailModalDemo from "./emailsForm";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -41,6 +42,8 @@ const AdminDashboard = () => {
   const [cvResults, setCvResults] = useState([]);
   const [cvLoading, setCvLoading] = useState(false);
 
+  const [gmailConnected, setGmailConnected] = useState(false);
+
   // 🔐 حماية صفحة الأدمن + تحميل المستخدمين من Mongo
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -63,7 +66,19 @@ const AdminDashboard = () => {
       navigate("/login");
       return;
     }
-
+  // 👇 جديد: لو رجعنا من جوجل ومعنا ?gmail=connected
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("gmail") === "connected") {
+    setGmailConnected(true);
+    localStorage.setItem("gmailConnected", "true");
+    setActiveTab("gmail_ai"); // اختياري: يفتح تب الجيميل مباشرة
+  } else {
+    // لو كنت موصّل من قبل وخزنّاها
+    const stored = localStorage.getItem("gmailConnected");
+    if (stored === "true") {
+      setGmailConnected(true);
+    }
+  }
     async function loadUsers() {
       try {
         setLoading(true);
@@ -789,8 +804,9 @@ const AdminDashboard = () => {
   };
 
   const renderGmailAiTools = () => (
-    <div>
-      {/* Card 0: Connect Gmail */}
+  <div>
+    {/* لو لسه ما وصلنا الجيميل -> اعرض زر Connect + الشرح */}
+    {!gmailConnected && (
       <div className="card">
         <h2 className="card-title">Connect Gmail</h2>
         <p style={{ marginBottom: "10px" }}>
@@ -801,140 +817,90 @@ const AdminDashboard = () => {
           Connect Gmail Account
         </button>
       </div>
+    )}
 
-      {/* Card 1: Email Summarizer */}
+    {/* لو الجيميل متصل -> اعرض الواجهة الجديدة بدل كونيكت + التلخيص القديم */}
+    {gmailConnected && (
       <div className="card">
-        <h2 className="card-title">Email Summarizer (AI)</h2>
+        <h2 className="card-title">Gmail Inbox & AI Tools</h2>
+        <GmailModalDemo />
+      </div>
+    )}
 
-        <div className="filter-section" style={{ gap: "10px" }}>
-          <button className="btn-primary" onClick={handleLoadGmailEmails}>
-            Load Recent Gmail Messages
-          </button>
+    {/* كارد Smart CV Filter نخليه زي ما هو (تحت) */}
+    <div className="card">
+      <h2 className="card-title">Smart CV Filter (AI)</h2>
 
-          <select
-            value={selectedEmailId}
-            onChange={(e) => setSelectedEmailId(e.target.value)}
-          >
-            <option value="">Select an email...</option>
-            {gmailEmails.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.subject} — {m.from}
-              </option>
-            ))}
-          </select>
-
-          <button className="btn-secondary" onClick={handleSummarizeEmail}>
-            Summarize Selected Email
-          </button>
+      <div className="form-grid">
+        <div className="input-group" style={{ gridColumn: "1 / -1" }}>
+          <label>Job Requirements *</label>
+          <textarea
+            placeholder="اكتب هنا متطلبات الوظيفة (خبرة، Skills، لغة، ...)"
+            value={cvRequirements}
+            onChange={(e) => setCvRequirements(e.target.value)}
+            rows={4}
+          />
         </div>
 
-        <table className="data-table" style={{ marginTop: "15px" }}>
-          <thead>
-            <tr>
-              <th>Subject</th>
-              <th>From</th>
-              <th>Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {gmailEmails.map((m) => (
-              <tr key={m.id}>
-                <td>{m.subject}</td>
-                <td>{m.from}</td>
-                <td>{m.date}</td>
-              </tr>
-            ))}
-            {gmailEmails.length === 0 && (
-              <tr>
-                <td colSpan="3" style={{ textAlign: "center", color: "#999" }}>
-                  No emails loaded yet. Click "Load Recent Gmail Messages".
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-
-        {emailSummary && (
-          <div className="card" style={{ marginTop: "15px" }}>
-            <h3 className="card-title">AI Summary</h3>
-            <p>{emailSummary}</p>
-          </div>
-        )}
-      </div>
-
-      {/* Card 2: Smart CV Filter */}
-      <div className="card">
-        <h2 className="card-title">Smart CV Filter (AI)</h2>
-
-        <div className="form-grid">
-          <div className="input-group" style={{ gridColumn: "1 / -1" }}>
-            <label>Job Requirements *</label>
-            <textarea
-              placeholder="اكتب هنا متطلبات الوظيفة (خبرة، Skills، لغة، ...)"
-              value={cvRequirements}
-              onChange={(e) => setCvRequirements(e.target.value)}
-              rows={4}
-            />
-          </div>
-
-          <div className="input-group">
-            <label>Keywords (optional)</label>
-            <input
-              type="text"
-              placeholder="مثال: cv,resume,job application"
-              value={cvKeywords}
-              onChange={(e) => setCvKeywords(e.target.value)}
-            />
-          </div>
+        <div className="input-group">
+          <label>Keywords (optional)</label>
+          <input
+            type="text"
+            placeholder="مثال: cv,resume,job application"
+            value={cvKeywords}
+            onChange={(e) => setCvKeywords(e.target.value)}
+          />
         </div>
-
-        <button className="btn-primary" onClick={handleFilterCvEmails}>
-          {cvLoading ? "Analyzing..." : "Analyze Inbox for CVs"}
-        </button>
-
-        <table className="data-table" style={{ marginTop: "15px" }}>
-          <thead>
-            <tr>
-              <th>Candidate</th>
-              <th>Email</th>
-              <th>Position</th>
-              <th>Score</th>
-              <th>Decision</th>
-              <th>Open in Gmail</th>
-            </tr>
-          </thead>
-          <tbody>
-            {cvResults.map((app) => (
-              <tr key={app.id}>
-                <td>{app.candidateName || "-"}</td>
-                <td>{app.from || "-"}</td>
-                <td>{app.position || "-"}</td>
-                <td>{app.score ?? "-"}</td>
-                <td>{app.decision || "-"}</td>
-                <td>
-                  {app.gmailLink ? (
-                    <a href={app.gmailLink} target="_blank" rel="noreferrer">
-                      View
-                    </a>
-                  ) : (
-                    "-"
-                  )}
-                </td>
-              </tr>
-            ))}
-            {cvResults.length === 0 && !cvLoading && (
-              <tr>
-                <td colSpan="6" style={{ textAlign: "center", color: "#999" }}>
-                  No CV results yet. Fill the requirements then click
-                  &quot;Analyze Inbox for CVs&quot;.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
       </div>
+
+      <button className="btn-primary" onClick={handleFilterCvEmails}>
+        {cvLoading ? "Analyzing..." : "Analyze Inbox for CVs"}
+      </button>
+
+      <table className="data-table" style={{ marginTop: "15px" }}>
+        <thead>
+          <tr>
+            <th>Candidate</th>
+            <th>Email</th>
+            <th>Position</th>
+            <th>Score</th>
+            <th>Decision</th>
+            <th>Open in Gmail</th>
+          </tr>
+        </thead>
+        <tbody>
+          {cvResults.map((app) => (
+            <tr key={app.id}>
+              <td>{app.candidateName || "-"}</td>
+              <td>{app.from || "-"}</td>
+              <td>{app.position || "-"}</td>
+              <td>{app.score ?? "-"}</td>
+              <td>{app.decision || "-"}</td>
+              <td>
+                {app.gmailLink ? (
+                  <a href={app.gmailLink} target="_blank" rel="noreferrer">
+                    View
+                  </a>
+                ) : (
+                  "-"
+                )}
+              </td>
+            </tr>
+          ))}
+          {cvResults.length === 0 && !cvLoading && (
+            <tr>
+              <td colSpan="6" style={{ textAlign: "center", color: "#999" }}>
+                No CV results yet. Fill the requirements then click
+                &quot;Analyze Inbox for CVs&quot;.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
     </div>
-  );
+  </div>
+);
+
 
   return (
     <div className="admin-container">
