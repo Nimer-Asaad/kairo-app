@@ -219,17 +219,14 @@
 .stat-number {
   font-size: 42px;
   font-weight: bold;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
   margin-bottom: 8px;
   margin-top: 0;
+  color: black;
 }
 
 .stat-label {
   font-size: 15px;
-  color: #6c757d;
+  color: black;
   font-weight: 500;
   margin: 0;
 }
@@ -611,6 +608,7 @@
 @media (max-width: 480px) {
   .stat-number {
     font-size: 32px;
+    color: black;
   }
 
   .stat-icon {
