@@ -66,19 +66,19 @@ const AdminDashboard = () => {
       navigate("/login");
       return;
     }
-  // 👇 جديد: لو رجعنا من جوجل ومعنا ?gmail=connected
-  const params = new URLSearchParams(window.location.search);
-  if (params.get("gmail") === "connected") {
-    setGmailConnected(true);
-    localStorage.setItem("gmailConnected", "true");
-    setActiveTab("gmail_ai"); // اختياري: يفتح تب الجيميل مباشرة
-  } else {
-    // لو كنت موصّل من قبل وخزنّاها
-    const stored = localStorage.getItem("gmailConnected");
-    if (stored === "true") {
+    // 👇 جديد: لو رجعنا من جوجل ومعنا ?gmail=connected
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("gmail") === "connected") {
       setGmailConnected(true);
+      localStorage.setItem("gmailConnected", "true");
+      setActiveTab("gmail_ai"); // اختياري: يفتح تب الجيميل مباشرة
+    } else {
+      // لو كنت موصّل من قبل وخزنّاها
+      const stored = localStorage.getItem("gmailConnected");
+      if (stored === "true") {
+        setGmailConnected(true);
+      }
     }
-  }
     async function loadUsers() {
       try {
         setLoading(true);
@@ -189,14 +189,14 @@ const AdminDashboard = () => {
       const data = await apiPost("/auth/create-user", body);
 
       const newUser = {
-      id: data.user.id, // ✅ نفس اللي رجعناه من الباك
-      name: data.user.full_name,
-      email: data.user.email,
-      phone: staffForm.phone || "",
-      address: staffForm.address || "",
-      status: staffForm.status,
-      type: staffForm.role,
-    };
+        id: data.user.id, // ✅ نفس اللي رجعناه من الباك
+        name: data.user.full_name,
+        email: data.user.email,
+        phone: staffForm.phone || "",
+        address: staffForm.address || "",
+        status: staffForm.status,
+        type: staffForm.role,
+      };
 
       if (staffForm.role === "hr") {
         setHrs((prev) => [...prev, newUser]);
@@ -742,7 +742,7 @@ const AdminDashboard = () => {
 
     return (
       <div className="card">
-        <h2 className="card-title">Email Filter</h2>
+        <h2 className="card-title">Employees Filter</h2>
         <div className="filter-section">
           <select
             value={emailFilter}
@@ -762,7 +762,7 @@ const AdminDashboard = () => {
               alert("Emails: " + filtered.map((u) => u.email).join(", "))
             }
           >
-            Copy Emails
+            Copy Employee Email
           </button>
         </div>
 
@@ -804,103 +804,99 @@ const AdminDashboard = () => {
   };
 
   const renderGmailAiTools = () => (
-  <div>
-    {/* لو لسه ما وصلنا الجيميل -> اعرض زر Connect + الشرح */}
-    {!gmailConnected && (
+    <div>
+      {/* لو لسه ما وصلنا الجيميل -> اعرض زر Connect + الشرح */}
+      {!gmailConnected && (
+        <div className="card">
+          <h2 className="card-title">Connect Gmail</h2>
+
+          <button className="btn-primary" onClick={handleConnectGmail}>
+            Connect Gmail Account
+          </button>
+        </div>
+      )}
+
+      {/* لو الجيميل متصل -> اعرض الواجهة الجديدة بدل كونيكت + التلخيص القديم */}
+      {gmailConnected && (
+        <div className="card">
+          <h2 className="card-title">Gmail Inbox & AI Tools</h2>
+          <GmailModalDemo />
+        </div>
+      )}
+
+      {/* كارد Smart CV Filter نخليه زي ما هو (تحت) */}
       <div className="card">
-        <h2 className="card-title">Connect Gmail</h2>
-        <p style={{ marginBottom: "10px" }}>
-          اربط حساب Gmail الخاص بالـ Company حتى يقدر Kairo يقرأ الإيميلات
-          المتعلقة بالوظائف ويعمل تلخيص وفلترة CVs تلقائياً.
-        </p>
-        <button className="btn-primary" onClick={handleConnectGmail}>
-          Connect Gmail Account
+        <h2 className="card-title">Smart CV Filter (AI)</h2>
+
+        <div className="form-grid">
+          <div className="input-group" style={{ gridColumn: "1 / -1" }}>
+            <label>Job Requirements *</label>
+            <textarea
+              placeholder="اكتب هنا متطلبات الوظيفة (خبرة، Skills، لغة، ...)"
+              value={cvRequirements}
+              onChange={(e) => setCvRequirements(e.target.value)}
+              rows={4}
+            />
+          </div>
+
+          <div className="input-group">
+            <label>Keywords (optional)</label>
+            <input
+              type="text"
+              placeholder="مثال: cv,resume,job application"
+              value={cvKeywords}
+              onChange={(e) => setCvKeywords(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <button className="btn-primary" onClick={handleFilterCvEmails}>
+          {cvLoading ? "Analyzing..." : "Analyze Inbox for CVs"}
         </button>
-      </div>
-    )}
 
-    {/* لو الجيميل متصل -> اعرض الواجهة الجديدة بدل كونيكت + التلخيص القديم */}
-    {gmailConnected && (
-      <div className="card">
-        <h2 className="card-title">Gmail Inbox & AI Tools</h2>
-        <GmailModalDemo />
-      </div>
-    )}
-
-    {/* كارد Smart CV Filter نخليه زي ما هو (تحت) */}
-    <div className="card">
-      <h2 className="card-title">Smart CV Filter (AI)</h2>
-
-      <div className="form-grid">
-        <div className="input-group" style={{ gridColumn: "1 / -1" }}>
-          <label>Job Requirements *</label>
-          <textarea
-            placeholder="اكتب هنا متطلبات الوظيفة (خبرة، Skills، لغة، ...)"
-            value={cvRequirements}
-            onChange={(e) => setCvRequirements(e.target.value)}
-            rows={4}
-          />
-        </div>
-
-        <div className="input-group">
-          <label>Keywords (optional)</label>
-          <input
-            type="text"
-            placeholder="مثال: cv,resume,job application"
-            value={cvKeywords}
-            onChange={(e) => setCvKeywords(e.target.value)}
-          />
-        </div>
-      </div>
-
-      <button className="btn-primary" onClick={handleFilterCvEmails}>
-        {cvLoading ? "Analyzing..." : "Analyze Inbox for CVs"}
-      </button>
-
-      <table className="data-table" style={{ marginTop: "15px" }}>
-        <thead>
-          <tr>
-            <th>Candidate</th>
-            <th>Email</th>
-            <th>Position</th>
-            <th>Score</th>
-            <th>Decision</th>
-            <th>Open in Gmail</th>
-          </tr>
-        </thead>
-        <tbody>
-          {cvResults.map((app) => (
-            <tr key={app.id}>
-              <td>{app.candidateName || "-"}</td>
-              <td>{app.from || "-"}</td>
-              <td>{app.position || "-"}</td>
-              <td>{app.score ?? "-"}</td>
-              <td>{app.decision || "-"}</td>
-              <td>
-                {app.gmailLink ? (
-                  <a href={app.gmailLink} target="_blank" rel="noreferrer">
-                    View
-                  </a>
-                ) : (
-                  "-"
-                )}
-              </td>
-            </tr>
-          ))}
-          {cvResults.length === 0 && !cvLoading && (
+        <table className="data-table" style={{ marginTop: "15px" }}>
+          <thead>
             <tr>
-              <td colSpan="6" style={{ textAlign: "center", color: "#999" }}>
-                No CV results yet. Fill the requirements then click
-                &quot;Analyze Inbox for CVs&quot;.
-              </td>
+              <th>Candidate</th>
+              <th>Email</th>
+              <th>Position</th>
+              <th>Score</th>
+              <th>Decision</th>
+              <th>Open in Gmail</th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {cvResults.map((app) => (
+              <tr key={app.id}>
+                <td>{app.candidateName || "-"}</td>
+                <td>{app.from || "-"}</td>
+                <td>{app.position || "-"}</td>
+                <td>{app.score ?? "-"}</td>
+                <td>{app.decision || "-"}</td>
+                <td>
+                  {app.gmailLink ? (
+                    <a href={app.gmailLink} target="_blank" rel="noreferrer">
+                      View
+                    </a>
+                  ) : (
+                    "-"
+                  )}
+                </td>
+              </tr>
+            ))}
+            {cvResults.length === 0 && !cvLoading && (
+              <tr>
+                <td colSpan="6" style={{ textAlign: "center", color: "#999" }}>
+                  No CV results yet. Fill the requirements then click
+                  &quot;Analyze Inbox for CVs&quot;.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
-);
-
+  );
 
   return (
     <div className="admin-container">
@@ -945,7 +941,7 @@ const AdminDashboard = () => {
           }
           onClick={() => setActiveTab("filter")}
         >
-          Email Filter
+          Employees Filter
         </button>
         <button
           className={
