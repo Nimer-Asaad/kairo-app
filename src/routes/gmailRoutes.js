@@ -1,6 +1,7 @@
 // src/routes/gmailRoutes.js
 import express from "express";
 import { google } from "googleapis";
+import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import auth from "../middleware/auth.js";
 
@@ -10,11 +11,8 @@ const router = express.Router();
 
 // ننشئ OAuth client باستخدام القيم من process.env وقت التنفيذ
 function createOAuth2Client() {
-  const {
-    GOOGLE_CLIENT_ID,
-    GOOGLE_CLIENT_SECRET,
-    GOOGLE_REDIRECT_URI,
-  } = process.env;
+  const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI } =
+    process.env;
 
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REDIRECT_URI) {
     throw new Error("Google OAuth not configured in .env");
@@ -35,7 +33,8 @@ async function saveGmailTokens(userId, tokens) {
   });
 }
 
-async function getOAuthClientForUser(userId) {
+// OAuth2 client للمستخدم (بدون إنشاء Gmail client)
+async function getOAuth2ClientForUser(userId) {
   const user = await User.findById(userId);
   if (!user || !user.gmailAccessToken || !user.gmailRefreshToken) {
     throw new Error("No Gmail tokens stored for this user");
@@ -49,6 +48,7 @@ async function getOAuthClientForUser(userId) {
     expiry_date: user.gmailTokenExpiry,
   });
 
+  // تحديث التوكنات تلقائياً إذا رجع من جوجل refresh جديد
   oAuth2Client.on("tokens", async (tokens) => {
     if (tokens.access_token) {
       await saveGmailTokens(userId, {
@@ -59,6 +59,12 @@ async function getOAuthClientForUser(userId) {
     }
   });
 
+  return oAuth2Client;
+}
+
+// Gmail client للمستخدم
+async function getGmailClientForUser(userId) {
+  const oAuth2Client = await getOAuth2ClientForUser(userId);
   return google.gmail({ version: "v1", auth: oAuth2Client });
 }
 
@@ -70,29 +76,40 @@ function decodeBase64Url(str) {
   ).toString("utf8");
 }
 
-function extractPlainTextFromMessage(message) {
-  const payload = message.payload;
+function extractMessageBody(payload) {
+  if (!payload) return { html: "", text: "" };
+
+  let html = "";
+  let text = "";
 
   function walk(part) {
-    if (!part) return "";
-    if (part.mimeType === "text/plain" && part.body && part.body.data) {
-      return decodeBase64Url(part.body.data);
+    if (!part) return;
+
+    // HTML أولاً
+    if (part.mimeType === "text/html" && part.body?.data) {
+      try {
+        html = decodeBase64Url(part.body.data);
+      } catch (e) {
+        console.error("Failed to decode HTML part:", e);
+      }
     }
-    if (part.parts && part.parts.length) {
-      return part.parts.map(walk).join("\n");
+
+    // TEXT كـ fallback
+    if (part.mimeType === "text/plain" && part.body?.data) {
+      try {
+        text = decodeBase64Url(part.body.data);
+      } catch (e) {
+        console.error("Failed to decode TEXT part:", e);
+      }
     }
-    return "";
+
+    if (part.parts?.length) {
+      part.parts.forEach(walk);
+    }
   }
 
-  if (payload.mimeType === "text/plain" && payload.body?.data) {
-    return decodeBase64Url(payload.body.data);
-  }
-
-  if (payload.parts?.length) {
-    return walk(payload);
-  }
-
-  return "";
+  walk(payload);
+  return { html, text };
 }
 
 // تلخيص بسيط بدون OpenAI (تقدر تطوّره بعدين)
@@ -139,15 +156,63 @@ async function scoreEmail({ text, requirements }) {
 // ---------- Routes ----------
 
 // 1) بدء عملية ربط Gmail
-router.get("/auth", auth, async (req, res) => {
+// ملاحظة: ما في auth middleware هون عشان نقدر نمرر الـ token كـ query
+router.get("/auth", async (req, res) => {
   try {
+    let userId = null;
+
+    // أولوية: token من الـ query (جاينا من الفرونت)
+    if (req.query.token) {
+      try {
+        const decoded = jwt.verify(
+          req.query.token,
+          process.env.JWT_SECRET || "super_secret_kairo_key"
+        );
+        userId =
+          decoded.user?.id ||
+          decoded.id ||
+          decoded._id ||
+          decoded.userId ||
+          null;
+      } catch (err) {
+        console.error("Invalid JWT in /gmail/auth:", err);
+      }
+    }
+
+    // fallback: لو حدا استدعى الراوت مع Authorization header
+    if (!userId && req.headers.authorization) {
+      try {
+        const token = req.headers.authorization.split(" ")[1];
+        const decoded = jwt.verify(
+          token,
+          process.env.JWT_SECRET || "super_secret_kairo_key"
+        );
+        userId =
+          decoded.user?.id ||
+          decoded.id ||
+          decoded._id ||
+          decoded.userId ||
+          null;
+      } catch (err) {
+        console.error("Invalid header JWT in /gmail/auth:", err);
+      }
+    }
+
+    if (!userId) {
+      return res.status(401).send("User not authenticated");
+    }
+
     const oAuth2Client = createOAuth2Client();
 
     const url = oAuth2Client.generateAuthUrl({
       access_type: "offline",
       prompt: "consent",
-      scope: ["https://www.googleapis.com/auth/gmail.readonly"],
-      state: String(req.user.id),
+      scope: [
+        "https://www.googleapis.com/auth/gmail.readonly",
+        "https://www.googleapis.com/auth/userinfo.email",
+        "https://www.googleapis.com/auth/userinfo.profile",
+      ],
+      state: String(userId),
     });
 
     res.redirect(url);
@@ -184,18 +249,50 @@ router.get("/oauth2/callback", async (req, res) => {
   }
 });
 
-// 3) جلب آخر الإيميلات
+// 3) جلب معلومات البروفايل (الصورة + الاسم + الإيميل)
+router.get("/profile", auth, async (req, res) => {
+  try {
+    const oAuth2Client = await getOAuth2ClientForUser(req.user.id);
+
+    const oauth2 = google.oauth2({
+      auth: oAuth2Client,
+      version: "v2",
+    });
+
+    const { data } = await oauth2.userinfo.get();
+
+    res.json({
+      email: data.email || "",
+      name: data.name || data.given_name || "Gmail User",
+      picture:
+        data.picture ||
+        "https://ui-avatars.com/api/?name=GM&background=4285f4&color=fff&size=120",
+    });
+  } catch (err) {
+    console.error("Gmail profile error:", err);
+    res.status(500).json({ message: "Failed to fetch Gmail profile" });
+  }
+});
+
+// 4) جلب الإيميلات مع دعم "next page"
 router.get("/messages", auth, async (req, res) => {
   try {
-    const gmail = await getOAuthClientForUser(req.user.id);
+    const gmail = await getGmailClientForUser(req.user.id);
 
     const limit = Number(req.query.limit || 20);
+    const pageToken = req.query.pageToken || undefined;
+
     const listRes = await gmail.users.messages.list({
       userId: "me",
       maxResults: limit,
+      labelIds: ["INBOX"],
+      includeSpamTrash: false,
+      pageToken, // صفحة جديدة كل مرة
     });
 
     const messages = listRes.data.messages || [];
+    const nextPageToken = listRes.data.nextPageToken || null;
+
     const result = [];
 
     for (const msg of messages) {
@@ -223,17 +320,18 @@ router.get("/messages", auth, async (req, res) => {
       });
     }
 
-    res.json(result);
+    // رجعنا الإيميلات + التوكن لصفحة أخرى
+    res.json({ emails: result, nextPageToken });
   } catch (err) {
     console.error("Gmail messages error:", err);
     res.status(500).json({ message: "Failed to fetch Gmail messages" });
   }
 });
 
-// 4) تلخيص إيميل معيّن
+// 5) تلخيص إيميل معيّن + إرجاع كامل الـ body
 router.get("/messages/:id/summary", auth, async (req, res) => {
   try {
-    const gmail = await getOAuthClientForUser(req.user.id);
+    const gmail = await getGmailClientForUser(req.user.id);
     const { id } = req.params;
 
     const full = await gmail.users.messages.get({
@@ -248,21 +346,42 @@ router.get("/messages/:id/summary", auth, async (req, res) => {
       headers.find((h) => h.name === "From")?.value || "(unknown)";
     const date =
       headers.find((h) => h.name === "Date")?.value || "(no date)";
-    const body = extractPlainTextFromMessage(full.data);
 
-    const summary = await summarizeEmail({ subject, from, date, body });
+    const { html, text } = extractMessageBody(full.data.payload);
+    const body = html || text || "";
 
-    res.json({ id, subject, from, date, summary });
+    const plainForSummary = (text || html || "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const summary = await summarizeEmail({
+      subject,
+      from,
+      date,
+      body: plainForSummary,
+    });
+
+    return res.json({
+      id,
+      subject,
+      from,
+      date,
+      body, // HTML أو Text
+      summary, // التلخيص النصي
+    });
   } catch (err) {
-    console.error("Gmail summary error:", err);
-    res.status(500).json({ message: "Failed to summarize email" });
+    console.error("Gmail summary error:", err?.message || err);
+    return res
+      .status(500)
+      .json({ message: "Failed to summarize email", error: String(err) });
   }
 });
 
-// 5) فلترة إيميلات الـ CV
+// 6) فلترة إيميلات الـ CV
 router.post("/filter-cvs", auth, async (req, res) => {
   try {
-    const { requirements, keywords = [] } = req.body;
+    const { requirements, keywords = [], limit: limitBody } = req.body;
 
     if (!requirements || !requirements.trim()) {
       return res
@@ -270,12 +389,15 @@ router.post("/filter-cvs", auth, async (req, res) => {
         .json({ message: "Job requirements are required" });
     }
 
-    const gmail = await getOAuthClientForUser(req.user.id);
+    const gmail = await getGmailClientForUser(req.user.id);
+    const limit = Number(limitBody || 50);
 
     const listRes = await gmail.users.messages.list({
       userId: "me",
-      maxResults: 50,
-      q: "has:attachment",
+      maxResults: limit,
+      labelIds: ["INBOX"],
+      includeSpamTrash: false,
+      q: "", // ما بنفلتر إيميلات زيادة
     });
 
     const messages = listRes.data.messages || [];
@@ -295,21 +417,23 @@ router.post("/filter-cvs", auth, async (req, res) => {
       const date =
         headers.find((h) => h.name === "Date")?.value || "(no date)";
       const snippet = full.data.snippet || "";
-      const body = extractPlainTextFromMessage(full.data);
 
-      const combined = `${subject}\n${snippet}\n${body}`.toLowerCase();
+      const { html, text } = extractMessageBody(full.data.payload);
+      const bodyString = `${subject}\n${snippet}\n${html}\n${text}`.trim();
 
       const kw = keywords
         .map((k) => k.toLowerCase().trim())
         .filter(Boolean);
 
+      const combinedLower = bodyString.toLowerCase();
+
       const passKeywords =
-        kw.length === 0 || kw.some((k) => combined.includes(k));
+        kw.length === 0 || kw.some((k) => combinedLower.includes(k));
 
       if (!passKeywords) continue;
 
       const scoring = await scoreEmail({
-        text: combined,
+        text: bodyString,
         requirements,
       });
 
