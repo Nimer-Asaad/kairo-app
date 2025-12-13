@@ -190,26 +190,36 @@ useEffect(() => {
         </button>
 
         <div className="modal-header">
-          <h2>Gmail Info</h2>
+          <div className="header-content">
+            <div className="header-icon">📧</div>
+            <div>
+              <h2>معلومات Gmail</h2>
+              <p className="header-subtitle">إدارة البريد الإلكتروني والذكاء الاصطناعي</p>
+            </div>
+          </div>
         </div>
 
         <div className="user-section">
-          <div className="user-info">
-            <img src={userInfo.picture} alt="Profile" className="profile-pic" />
-            <div>
-              <p className="user-name">{userInfo.name}</p>
-              <p className="user-email">{userInfo.email}</p>
+          <div className="user-profile-card">
+            <div className="profile-pic-wrapper">
+              <img src={userInfo.picture} alt="Profile" className="profile-pic" />
+              <div className="profile-status"></div>
+            </div>
+            <div className="user-details">
+              <p className="user-name">👤 {userInfo.name}</p>
+              <p className="user-email">✉️ {userInfo.email}</p>
             </div>
           </div>
 
-          {/* أزرار التحكم في الحساب */}
-          <div style={{ display: "flex", gap: "10px" }}>
-            <button className="disconnect-button" onClick={handleReconnectGmail}>
-              🔄 Reconnect / Change Gmail
+          <div className="account-actions">
+            <button className="action-btn reconnect-btn" onClick={handleReconnectGmail}>
+              <span className="btn-icon">🔄</span>
+              <span>تغيير الحساب</span>
             </button>
 
-            <button className="disconnect-button" onClick={handleDisconnect}>
-              ⛔ Disconnect
+            <button className="action-btn disconnect-btn" onClick={handleDisconnect}>
+              <span className="btn-icon">⛔</span>
+              <span>قطع الاتصال</span>
             </button>
           </div>
         </div>
@@ -217,9 +227,17 @@ useEffect(() => {
         <div className="modal-content">
           <div className="inbox-section">
             <div className="inbox-header">
-              <h3>Inbox</h3>
+              <div className="inbox-title">
+                <span className="inbox-icon">📬</span>
+                <h3>صندوق الوارد</h3>
+              </div>
               <span className="email-count">
-                {loading ? "Loading..." : `${emails.length} emails`}
+                {loading ? "⏳ جاري التحميل..." : (
+                  <>
+                    <span className="count-number">{emails.length}</span>
+                    <span className="count-label">رسالة</span>
+                  </>
+                )}
               </span>
             </div>
 

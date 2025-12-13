@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import "./systemAdmin.css";
 import { apiGet, apiPost } from "./api";
 import GmailModalDemo from "./emailsForm";
+import AIAssistant from "./AIAssistant";
 import { useNavigate, useLocation } from "react-router-dom";
 
 const AdminDashboard = () => {
@@ -804,97 +805,170 @@ const AdminDashboard = () => {
   };
 
   const renderGmailAiTools = () => (
-    <div>
-      {/* لو لسه ما وصلنا الجيميل -> اعرض زر Connect + الشرح */}
+    <div className="gmail-ai-container">
+      {/* Gmail Connection Status */}
       {!gmailConnected && (
-        <div className="card">
-          <h2 className="card-title">Connect Gmail</h2>
-
-          <button className="btn-primary" onClick={handleConnectGmail}>
-            Connect Gmail Account
+        <div className="gmail-connection-card">
+          <div className="connection-icon">📧</div>
+          <h2>اتصل حسابك في Gmail</h2>
+          <p>قم بربط حسابك في Gmail لاستخدام جميع الميزات الذكية</p>
+          <button className="btn-primary btn-large" onClick={handleConnectGmail}>
+            🔗 ربط حساب Gmail
           </button>
         </div>
       )}
 
-      {/* لو الجيميل متصل -> اعرض الواجهة الجديدة بدل كونيكت + التلخيص القديم */}
+      {/* Gmail Connected - Show AI Tools */}
       {gmailConnected && (
-        <div className="card">
-          <h2 className="card-title">Gmail Inbox & AI Tools</h2>
-          <GmailModalDemo />
-        </div>
-      )}
-
-      {/* كارد Smart CV Filter نخليه زي ما هو (تحت) */}
-      <div className="card">
-        <h2 className="card-title">Smart CV Filter (AI)</h2>
-
-        <div className="form-grid">
-          <div className="input-group" style={{ gridColumn: "1 / -1" }}>
-            <label>Job Requirements *</label>
-            <textarea
-              placeholder="اكتب هنا متطلبات الوظيفة (خبرة، Skills، لغة، ...)"
-              value={cvRequirements}
-              onChange={(e) => setCvRequirements(e.target.value)}
-              rows={4}
-            />
+        <>
+          {/* Gmail Inbox Section */}
+          <div className="gmail-section">
+            <div className="section-header">
+              <h2>📬 صندوق Gmail الخاص بك</h2>
+              <span className="section-badge">متصل</span>
+            </div>
+            <div className="gmail-content">
+              <GmailModalDemo />
+            </div>
           </div>
 
-          <div className="input-group">
-            <label>Keywords (optional)</label>
-            <input
-              type="text"
-              placeholder="مثال: cv,resume,job application"
-              value={cvKeywords}
-              onChange={(e) => setCvKeywords(e.target.value)}
-            />
-          </div>
-        </div>
+          {/* Smart CV Filter Section */}
+          <div className="cv-filter-section">
+            <div className="section-header">
+              <h2>🤖 تحليل السير الذاتية الذكي</h2>
+              <span className="section-badge">AI Powered</span>
+            </div>
 
-        <button className="btn-primary" onClick={handleFilterCvEmails}>
-          {cvLoading ? "Analyzing..." : "Analyze Inbox for CVs"}
-        </button>
+            <div className="cv-filter-card">
+              <div className="form-section">
+                <div className="input-group full-width">
+                  <label htmlFor="cv-requirements">
+                    <span className="label-icon">📋</span>
+                    متطلبات الوظيفة
+                    <span className="required">*</span>
+                  </label>
+                  <textarea
+                    id="cv-requirements"
+                    placeholder="مثال: Python, 3+ سنوات خبرة, ReactJS, Database Design..."
+                    value={cvRequirements}
+                    onChange={(e) => setCvRequirements(e.target.value)}
+                    rows={4}
+                    className="textarea-input"
+                  />
+                </div>
 
-        <table className="data-table" style={{ marginTop: "15px" }}>
-          <thead>
-            <tr>
-              <th>Candidate</th>
-              <th>Email</th>
-              <th>Position</th>
-              <th>Score</th>
-              <th>Decision</th>
-              <th>Open in Gmail</th>
-            </tr>
-          </thead>
-          <tbody>
-            {cvResults.map((app) => (
-              <tr key={app.id}>
-                <td>{app.candidateName || "-"}</td>
-                <td>{app.from || "-"}</td>
-                <td>{app.position || "-"}</td>
-                <td>{app.score ?? "-"}</td>
-                <td>{app.decision || "-"}</td>
-                <td>
-                  {app.gmailLink ? (
-                    <a href={app.gmailLink} target="_blank" rel="noreferrer">
-                      View
-                    </a>
-                  ) : (
-                    "-"
-                  )}
-                </td>
-              </tr>
-            ))}
-            {cvResults.length === 0 && !cvLoading && (
-              <tr>
-                <td colSpan="6" style={{ textAlign: "center", color: "#999" }}>
-                  No CV results yet. Fill the requirements then click
-                  &quot;Analyze Inbox for CVs&quot;.
-                </td>
-              </tr>
+                <div className="input-group full-width">
+                  <label htmlFor="cv-keywords">
+                    <span className="label-icon">🔑</span>
+                    كلمات مفتاحية إضافية (اختياري)
+                  </label>
+                  <input
+                    id="cv-keywords"
+                    type="text"
+                    placeholder="مثال: cv, resume, job application, سيرة ذاتية"
+                    value={cvKeywords}
+                    onChange={(e) => setCvKeywords(e.target.value)}
+                    className="text-input"
+                  />
+                </div>
+              </div>
+
+              <button 
+                className={`btn-primary btn-large ${cvLoading ? 'btn-loading' : ''}`} 
+                onClick={handleFilterCvEmails}
+                disabled={cvLoading || !cvRequirements.trim()}
+              >
+                {cvLoading ? (
+                  <>
+                    <span className="spinner"></span> جاري التحليل...
+                  </>
+                ) : (
+                  <>
+                    🔍 تحليل صندوق الوارد للبحث عن السير الذاتية
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Results Table */}
+            {cvResults.length > 0 && (
+              <div className="cv-results-section">
+                <div className="results-header">
+                  <h3>📊 النتائج ({cvResults.length})</h3>
+                  <span className="results-info">تم التحليل بنجاح</span>
+                </div>
+                
+                <div className="table-responsive">
+                  <table className="cv-results-table">
+                    <thead>
+                      <tr>
+                        <th>👤 المرشح</th>
+                        <th>📧 البريد الإلكتروني</th>
+                        <th>💼 المنصب</th>
+                        <th>⭐ الدرجة</th>
+                        <th>✅ القرار</th>
+                        <th>🔗 الإجراء</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cvResults.map((app, idx) => (
+                        <tr key={app.id || idx} className={`score-${app.score}`}>
+                          <td className="candidate-name">
+                            <span className="name-badge">{(app.candidateName || '-').substring(0, 1).toUpperCase()}</span>
+                            {app.candidateName || '-'}
+                          </td>
+                          <td className="email">{app.from || '-'}</td>
+                          <td className="position">{app.position || '-'}</td>
+                          <td className="score">
+                            <span className={`score-badge score-${Math.floor((app.score || 0) / 25) * 25}`}>
+                              {app.score ?? '-'}
+                            </span>
+                          </td>
+                          <td className="decision">
+                            <span className={`decision-badge decision-${app.decision?.toLowerCase() || 'pending'}`}>
+                              {app.decision || '⏳ في الانتظار'}
+                            </span>
+                          </td>
+                          <td className="action">
+                            {app.gmailLink ? (
+                              <a 
+                                href={app.gmailLink} 
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="action-link"
+                              >
+                                📬 فتح
+                              </a>
+                            ) : (
+                              <span className="action-unavailable">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             )}
-          </tbody>
-        </table>
-      </div>
+
+            {cvResults.length === 0 && !cvLoading && cvRequirements.trim() && (
+              <div className="empty-state">
+                <div className="empty-icon">🔍</div>
+                <h3>لم يتم العثور على نتائج</h3>
+                <p>لم يتم العثور على سير ذاتية مطابقة للمتطلبات المحددة</p>
+              </div>
+            )}
+
+            {cvResults.length === 0 && !cvLoading && !cvRequirements.trim() && (
+              <div className="empty-state">
+                <div className="empty-icon">📝</div>
+                <h3>ابدأ بإدخال متطلبات الوظيفة</h3>
+                <p>أدخل المتطلبات والمهارات المطلوبة للوظيفة لتحليل السير الذاتية</p>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 
@@ -951,6 +1025,14 @@ const AdminDashboard = () => {
         >
           Gmail AI (CV)
         </button>
+        <button
+          className={
+            activeTab === "ai_assistant" ? "nav-button active" : "nav-button"
+          }
+          onClick={() => setActiveTab("ai_assistant")}
+        >
+          🤖 Kairo AI Assistant
+        </button>
       </div>
 
       {activeTab === "dashboard" && renderDashboard()}
@@ -958,6 +1040,7 @@ const AdminDashboard = () => {
       {activeTab === "chat" && renderChat()}
       {activeTab === "filter" && renderEmailFilter()}
       {activeTab === "gmail_ai" && renderGmailAiTools()}
+      {activeTab === "ai_assistant" && <AIAssistant />}
     </div>
   );
 };
