@@ -2,7 +2,7 @@
 import express from "express";
 import { google } from "googleapis";
 import jwt from "jsonwebtoken";
-import User from "../models/User.js";
+import { dbManager } from "../db/dbManager.js";
 import auth from "../middleware/auth.js";
 
 const router = express.Router();
@@ -26,7 +26,7 @@ function createOAuth2Client() {
 }
 
 async function saveGmailTokens(userId, tokens) {
-  await User.findByIdAndUpdate(userId, {
+  await dbManager.updateUser(userId, {
     gmailAccessToken: tokens.access_token,
     gmailRefreshToken: tokens.refresh_token,
     gmailTokenExpiry: tokens.expiry_date,
@@ -35,7 +35,7 @@ async function saveGmailTokens(userId, tokens) {
 
 // OAuth2 client للمستخدم (بدون إنشاء Gmail client)
 async function getOAuth2ClientForUser(userId) {
-  const user = await User.findById(userId);
+  const user = await dbManager.findUserById(userId);
   if (!user || !user.gmailAccessToken || !user.gmailRefreshToken) {
     throw new Error("No Gmail tokens stored for this user");
   }
@@ -261,17 +261,41 @@ router.get("/profile", auth, async (req, res) => {
 
     const { data } = await oauth2.userinfo.get();
 
+    // Also get messagesTotal from Gmail profile
+    const gmail = await getGmailClientForUser(req.user.id);
+    let messagesTotal = null;
+    try {
+      const profile = await gmail.users.getProfile({ userId: "me" });
+      messagesTotal = profile?.data?.messagesTotal ?? null;
+    } catch (e) {
+      console.warn("Failed to get Gmail profile messagesTotal:", e.message);
+    }
+
     res.json({
       email: data.email || "",
       name: data.name || data.given_name || "Gmail User",
       picture:
         data.picture ||
         "https://ui-avatars.com/api/?name=GM&background=4285f4&color=fff&size=120",
+      messagesTotal,
     });
   } catch (err) {
     console.error("Gmail profile error:", err);
     res.status(500).json({ message: "Failed to fetch Gmail profile" });
   }
+});
+
+// Sync state endpoints
+router.get("/sync/state", auth, async (req, res) => {
+  const scope = (req.query.scope || "inbox").toString();
+  const state = await dbManager.getSyncState(req.user.id, scope);
+  res.json(state || {});
+});
+
+router.post("/sync/reset", auth, async (req, res) => {
+  const scope = (req.query.scope || req.body?.scope || "inbox").toString();
+  await dbManager.resetSyncState(req.user.id, scope);
+  res.json({ message: "Sync state reset" });
 });
 
 // 4) جلب الإيميلات مع دعم "next page"
@@ -457,6 +481,382 @@ router.post("/filter-cvs", auth, async (req, res) => {
   } catch (err) {
     console.error("Gmail filter-cvs error:", err);
     res.status(500).json({ message: "Failed to filter CV emails" });
+  }
+});
+
+// 7) Sync Gmail emails to local MongoDB (NEW)
+router.post("/sync-local", auth, async (req, res) => {
+  try {
+    const { maxResults = 50, labelIds, q } = req.body;
+    const gmail = await getGmailClientForUser(req.user.id);
+    
+    const limit = Math.min(Number(maxResults), 100);
+
+    // Fetch Gmail messages
+    const listRes = await gmail.users.messages.list({
+      userId: "me",
+      maxResults: limit,
+      labelIds: Array.isArray(labelIds) && labelIds.length ? labelIds : ["INBOX"],
+      includeSpamTrash: false,
+      q: q || undefined,
+    });
+
+    const messages = listRes.data.messages || [];
+    let synced = 0;
+    let skipped = 0;
+
+    for (const msg of messages) {
+      try {
+        const full = await gmail.users.messages.get({
+          userId: "me",
+          id: msg.id,
+          format: "full",
+        });
+
+        const headers = full.data.payload.headers || [];
+        const subject = headers.find((h) => h.name === "Subject")?.value || "(no subject)";
+        const fromHeader = headers.find((h) => h.name === "From")?.value || "(unknown)";
+        const dateHeader = headers.find((h) => h.name === "Date")?.value || "";
+        const toHeader = headers.find((h) => h.name === "To")?.value || "";
+        const ccHeader = headers.find((h) => h.name === "Cc")?.value || "";
+
+        // Extract email from "Name <email@domain.com>" format
+        const fromEmailMatch = fromHeader.match(/<([^>]+)>/) || [null, fromHeader];
+        const fromEmail = fromEmailMatch[1] || fromHeader;
+        const fromName = fromHeader.replace(/<[^>]+>/, "").trim();
+
+        const to = toHeader.split(",").map((e) => e.trim()).filter(Boolean);
+        const cc = ccHeader.split(",").map((e) => e.trim()).filter(Boolean);
+
+        const { html, text } = extractMessageBody(full.data.payload);
+        const snippet = full.data.snippet || "";
+        const labels = full.data.labelIds || [];
+
+        // Check for attachments
+        let hasAttachments = false;
+        const attachments = [];
+        
+        function findAttachments(part) {
+          if (part.filename && part.body?.attachmentId) {
+            hasAttachments = true;
+            attachments.push({
+              filename: part.filename,
+              mimeType: part.mimeType,
+              size: part.body.size || 0,
+              attachmentId: part.body.attachmentId,
+            });
+          }
+          if (part.parts) {
+            part.parts.forEach(findAttachments);
+          }
+        }
+        
+        if (full.data.payload) {
+          findAttachments(full.data.payload);
+        }
+
+        // Auto-detect CV emails based on keywords and attachments
+        const combinedText = `${subject} ${snippet} ${text}`.toLowerCase();
+        const cvKeywords = ["cv", "resume", "curriculum vitae", "سيرة ذاتية", "application", "candidate"];
+        const isCV = cvKeywords.some((kw) => combinedText.includes(kw)) && hasAttachments;
+
+        // Check if email already exists (avoid duplicates)
+        const existing = await dbManager.findEmailByGmailId(req.user.id, msg.id);
+
+        if (existing) {
+          skipped++;
+          continue;
+        }
+
+        // Save to local or MongoDB store
+        await dbManager.createEmail({
+          userId: req.user.id,
+          gmailId: msg.id,
+          gmailMessageId: full.data.id,
+          threadId: full.data.threadId,
+          fromEmail,
+          fromName,
+          to,
+          cc,
+          subject,
+          snippet,
+          bodyText: text,
+          bodyHtml: html,
+          date: dateHeader ? new Date(dateHeader) : new Date(),
+          internalDate: full.data.internalDate,
+          hasAttachments,
+          attachments,
+          labels,
+          tags: isCV ? ["CV"] : [],
+          isCV,
+        });
+
+        synced++;
+      } catch (msgError) {
+        console.error(`Failed to sync message ${msg.id}:`, msgError.message);
+      }
+    }
+
+    res.json({
+      message: "Gmail sync completed",
+      synced,
+      skipped,
+      total: messages.length,
+    });
+  } catch (err) {
+    console.error("Gmail sync-local error:", err);
+    res.status(500).json({ message: "Failed to sync Gmail to local storage" });
+  }
+});
+
+// 8) Local search endpoint (NEW)
+router.get("/local/search", auth, async (req, res) => {
+  try {
+    const {
+      from,
+      keyword,
+      hasAttachments,
+      startDate,
+      endDate,
+      tag,
+      labelId,
+      labelIds,
+      limit = 20,
+    } = req.query;
+
+    const query = { userId: req.user.id };
+
+    // Filter by sender email
+    if (from) {
+      query.fromEmail = new RegExp(from, "i");
+    }
+
+    // Keyword search in subject, body, snippet
+    if (keyword) {
+      query.$or = [
+        { subject: new RegExp(keyword, "i") },
+        { bodyText: new RegExp(keyword, "i") },
+        { snippet: new RegExp(keyword, "i") },
+      ];
+    }
+
+    // Filter by attachments
+    if (hasAttachments === "true") {
+      query.hasAttachments = true;
+    }
+
+    // Date range filter
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) query.date.$gte = new Date(startDate);
+      if (endDate) query.date.$lte = new Date(endDate);
+    }
+
+    // Filter by tag
+    if (tag) {
+      query.tags = tag;
+    }
+
+    // Filter by Gmail label(s)
+    const labelsFilter =
+      (typeof labelId === "string" && labelId.trim() ? [labelId.trim()] : [])
+        .concat(
+          typeof labelIds === "string"
+            ? labelIds
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean)
+            : []
+        );
+    if (labelsFilter.length) {
+      query.labels = { $in: labelsFilter };
+    }
+
+    const totalCount = await dbManager.countEmails(query);
+
+    const emails = await dbManager.findEmails(query);
+    
+    // Sort using Gmail's priority system (exactly like Gmail does)
+    const filtered = emails
+      .sort((a, b) => {
+        // 1. Priority score (starred, important, unread, category, recency)
+        const priorityDiff = (b.gmailPriority || 0) - (a.gmailPriority || 0);
+        if (priorityDiff !== 0) return priorityDiff;
+        
+        // 2. Importance level
+        const importanceOrder = { high: 3, normal: 2, low: 1 };
+        const importanceDiff = (importanceOrder[b.gmailImportance] || 2) - (importanceOrder[a.gmailImportance] || 2);
+        if (importanceDiff !== 0) return importanceDiff;
+        
+        // 3. Date (most recent first)
+        return new Date(b.date) - new Date(a.date);
+      })
+      .slice(0, Math.min(Number(limit), 100));
+
+    res.json({
+      emails: filtered,
+      count: totalCount,
+    });
+  } catch (err) {
+    console.error("Gmail local/search error:", err);
+    res.status(500).json({ message: "Failed to search local emails" });
+  }
+});
+
+// 7b) Paginated sync: fetch a Gmail page, store locally, return nextPageToken
+router.post("/sync-page", auth, async (req, res) => {
+  try {
+    const { limit = 100, pageToken, labelIds, q, scope } = req.body;
+    const gmail = await getGmailClientForUser(req.user.id);
+
+    const max = Math.min(Number(limit), 100);
+
+    const listRes = await gmail.users.messages.list({
+      userId: "me",
+      maxResults: max,
+      labelIds: Array.isArray(labelIds) && labelIds.length ? labelIds : ["INBOX"],
+      includeSpamTrash: false,
+      pageToken: pageToken || undefined,
+      q: q || undefined,
+    });
+
+    const messages = listRes.data.messages || [];
+    const nextPageToken = listRes.data.nextPageToken || null;
+
+    let synced = 0;
+    let skipped = 0;
+
+    for (const msg of messages) {
+      try {
+        const full = await gmail.users.messages.get({ userId: "me", id: msg.id, format: "full" });
+
+        const headers = full.data.payload.headers || [];
+        const subject = headers.find((h) => h.name === "Subject")?.value || "(no subject)";
+        const fromHeader = headers.find((h) => h.name === "From")?.value || "(unknown)";
+        const dateHeader = headers.find((h) => h.name === "Date")?.value || "";
+        const toHeader = headers.find((h) => h.name === "To")?.value || "";
+        const ccHeader = headers.find((h) => h.name === "Cc")?.value || "";
+
+        const fromEmailMatch = fromHeader.match(/<([^>]+)>/) || [null, fromHeader];
+        const fromEmail = fromEmailMatch[1] || fromHeader;
+        const fromName = fromHeader.replace(/<[^>]+>/, "").trim();
+
+        const to = toHeader.split(",").map((e) => e.trim()).filter(Boolean);
+        const cc = ccHeader.split(",").map((e) => e.trim()).filter(Boolean);
+
+        const { html, text } = extractMessageBody(full.data.payload);
+        const snippet = full.data.snippet || "";
+        const labels = full.data.labelIds || [];
+
+        let hasAttachments = false;
+        const attachments = [];
+        function findAttachments(part) {
+          if (part.filename && part.body?.attachmentId) {
+            hasAttachments = true;
+            attachments.push({
+              filename: part.filename,
+              mimeType: part.mimeType,
+              size: part.body.size || 0,
+              attachmentId: part.body.attachmentId,
+            });
+          }
+          if (part.parts) part.parts.forEach(findAttachments);
+        }
+        if (full.data.payload) findAttachments(full.data.payload);
+
+        const combinedText = `${subject} ${snippet} ${text}`.toLowerCase();
+        const cvKeywords = ["cv", "resume", "curriculum vitae", "سيرة ذاتية", "application", "candidate"];
+        const isCV = cvKeywords.some((kw) => combinedText.includes(kw)) && hasAttachments;
+
+        // Extract Gmail-specific metadata for smart sorting
+        const isStarred = labels.includes('STARRED');
+        const isImportant = labels.includes('IMPORTANT');
+        const isUnread = labels.includes('UNREAD');
+        
+        // Determine Gmail category
+        let gmailCategory = 'Primary';
+        if (labels.includes('CATEGORY_SOCIAL')) gmailCategory = 'Social';
+        else if (labels.includes('CATEGORY_PROMOTIONS')) gmailCategory = 'Promotions';
+        else if (labels.includes('CATEGORY_UPDATES')) gmailCategory = 'Updates';
+        else if (labels.includes('CATEGORY_FORUMS')) gmailCategory = 'Forums';
+        
+        // Calculate Gmail-like priority (higher = more important)
+        let gmailPriority = 0;
+        if (isStarred) gmailPriority += 100;
+        if (isImportant) gmailPriority += 50;
+        if (isUnread) gmailPriority += 10;
+        if (gmailCategory === 'Primary') gmailPriority += 30;
+        if (hasAttachments) gmailPriority += 5;
+        // Recent emails get priority boost
+        const emailDate = dateHeader ? new Date(dateHeader) : new Date();
+        const daysSinceEmail = (Date.now() - emailDate.getTime()) / (1000 * 60 * 60 * 24);
+        if (daysSinceEmail < 7) gmailPriority += 20;
+        else if (daysSinceEmail < 30) gmailPriority += 10;
+        
+        // Determine importance level
+        let gmailImportance = 'normal';
+        if (isStarred || isImportant) gmailImportance = 'high';
+        else if (gmailCategory !== 'Primary') gmailImportance = 'low';
+
+        const existing = await dbManager.findEmailByGmailId(req.user.id, msg.id);
+        if (existing) {
+          skipped++;
+          continue;
+        }
+
+        await dbManager.createEmail({
+          userId: req.user.id,
+          gmailId: msg.id,
+          gmailMessageId: full.data.id,
+          threadId: full.data.threadId,
+          fromEmail,
+          fromName,
+          to,
+          cc,
+          subject,
+          snippet,
+          bodyText: text,
+          bodyHtml: html,
+          date: emailDate,
+          internalDate: full.data.internalDate,
+          hasAttachments,
+          attachments,
+          labels,
+          tags: isCV ? ["CV"] : [],
+          isCV,
+          // Gmail smart sorting metadata
+          gmailImportance,
+          gmailCategory,
+          gmailPriority,
+          isStarred,
+          isImportant,
+          isUnread,
+        });
+
+        synced++;
+      } catch (e) {
+        console.error("sync-page item error:", e.message);
+      }
+    }
+
+    // Update persistent sync state
+    const stateScope = (scope || "inbox").toString();
+    await dbManager.updateSyncState(req.user.id, stateScope, {
+      lastPageToken: nextPageToken,
+      totalSynced: ((await dbManager.getSyncState(req.user.id, stateScope))?.totalSynced || 0) + synced,
+      totalSkipped: ((await dbManager.getSyncState(req.user.id, stateScope))?.totalSkipped || 0) + skipped,
+      pagesProcessed: ((await dbManager.getSyncState(req.user.id, stateScope))?.pagesProcessed || 0) + 1,
+    });
+
+    res.json({ message: "Page synced", synced, skipped, total: messages.length, nextPageToken });
+  } catch (err) {
+    // Log full error for debugging and surface a helpful message to the client
+    console.error("Gmail sync-page error:", err);
+    const authError = err?.code === 401 || err?.response?.status === 401;
+    const friendlyMessage = authError
+      ? "انتهت صلاحية اتصال Gmail، الرجاء إعادة الربط"
+      : err?.errors?.[0]?.message || err?.message || "Failed to sync Gmail page";
+    res.status(authError ? 401 : 500).json({ message: friendlyMessage });
   }
 });
 
