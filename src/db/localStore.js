@@ -154,12 +154,13 @@ export class LocalStore {
           continue;
         }
         
-        // Handle $or operator
+        // Handle $or operator: any condition can match
         if (key === '$or' && Array.isArray(queryValue)) {
           const orMatch = queryValue.some(condition => {
-            return Object.entries(condition).every(([k, v]) => {
+            // For each $or condition, check if ANY field matches (not all)
+            return Object.entries(condition).some(([k, v]) => {
               if (v instanceof RegExp) {
-                return v.test(email[k]);
+                return v.test(email[k] || '');
               }
               return email[k] === v;
             });

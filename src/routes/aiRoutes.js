@@ -159,16 +159,19 @@ Examples:
     if (!plan) {
       const msg = message.toLowerCase();
       let intent = "list_emails";
-      let keyword = message;
+      let keyword = message; // Use original message as keyword for semantic/text search
       let tag = null;
 
       if (msg.includes("cv") || msg.includes("resume") || msg.includes("سيرة") || msg.includes("تقديم")) {
         intent = "find_cvs";
         tag = "CV";
+        // For CV searches, use the search query minus CV-related words
+        keyword = message.replace(/cv|resume|سيرة|تقديم|CVs|resumes/gi, "").trim() || message;
       }
       if (msg.includes("rank") || msg.includes("ترتيب") || msg.includes("مرشح")) {
         intent = "rank_cvs";
         tag = "CV";
+        keyword = message.replace(/rank|ترتيب|مرشح|ranking|candidates/gi, "").trim() || message;
       }
 
       plan = {
