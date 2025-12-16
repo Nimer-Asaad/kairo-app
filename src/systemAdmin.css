@@ -674,8 +674,13 @@
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .gmail-connection-card h2 {
@@ -699,7 +704,7 @@
 }
 
 .section-header {
-  background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+  background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
   color: white;
   padding: 20px 30px;
   display: flex;
@@ -733,7 +738,7 @@
 }
 
 .cv-filter-section .section-header {
-  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+  background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
 }
 
 .cv-filter-card {
@@ -785,7 +790,7 @@
 .textarea-input:focus,
 .text-input:focus {
   outline: none;
-  border-color: #FF9800;
+  border-color: #ff9800;
   box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.1);
 }
 
@@ -813,7 +818,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* CV Results Section */
@@ -971,7 +978,7 @@
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  background: #2196F3;
+  background: #2196f3;
   color: white;
   text-decoration: none;
   border-radius: 6px;
@@ -981,7 +988,7 @@
 }
 
 .action-link:hover {
-  background: #1976D2;
+  background: #1976d2;
   transform: translateY(-2px);
   box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
 }
@@ -1013,4 +1020,163 @@
 .empty-state p {
   margin: 0;
   color: #999;
+}
+
+/* نظام الأزرار والتوافق مع ManagerTasks */
+
+/* التصميم العام للأزرار */
+.nav-button {
+  padding: 10px 20px;
+  border: none;
+  background: #f3f4f6;
+  color: #4b5563;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: 8px;
+  font-size: 14px;
+}
+
+.nav-button:hover {
+  background: #e5e7eb;
+  transform: translateY(-1px);
+}
+
+.nav-button.active {
+  background: #3b82f6;
+  color: white;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+/* تصميم جديد لـ ManagerTasks في نفس الصفحة */
+.manager-tasks-wrapper {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  margin-top: 20px;
+  height: calc(100vh - 180px); /* ارتفاع مناسب */
+}
+
+/* التأكد من أن ManagerTasks تأخذ المساحة الكاملة */
+.manager-tasks-wrapper > div {
+  height: 100%;
+}
+
+/* تحسين التنقل ليتناسب مع الأزرار الجديدة */
+.navigation {
+  display: flex;
+  gap: 10px;
+  padding: 15px 0;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #e5e7eb;
+  flex-wrap: wrap;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.navigation::-webkit-scrollbar {
+  height: 4px;
+}
+
+.navigation::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.navigation::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.admin-container .app-container {
+  height: 100%;
+  width: 100%;
+}
+
+/* ===== Manager Tasks Tab Styles ===== */
+
+.manager-tasks-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  margin-top: 10px;
+  height: calc(100vh - 180px);
+  display: flex;
+  flex-direction: column;
+}
+
+.manager-tasks-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.manager-tasks-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.back-to-dashboard-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  backdrop-filter: blur(10px);
+}
+
+.back-to-dashboard-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.manager-tasks-container > div:last-child {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* إصلاح التوافق مع ManagerTasks المضمن */
+.manager-tasks-container .app-container {
+  height: 100%;
+}
+
+.manager-tasks-container .main-container {
+  height: calc(100% - 70px); /* تأخذ المساحة المتبقية */
+}
+
+/* تحسينات للشاشات الصغيرة */
+@media (max-width: 768px) {
+  .manager-tasks-header {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+    padding: 15px;
+  }
+
+  .manager-tasks-header h2 {
+    font-size: 20px;
+  }
+
+  .back-to-dashboard-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .manager-tasks-container {
+    height: calc(100vh - 220px);
+  }
 }

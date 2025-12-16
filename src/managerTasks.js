@@ -1,102 +1,50 @@
-import { useState, useEffect } from "react";
+
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./managerTasks.css";
+import { apiGet, apiPost } from "./api";
 
-// Mock Data
-const mockUsers = [
-  {
-    id: 1,
-    name: "John Doe",
-    role: "Developer",
-    dept: "Development",
-    status: "Active",
-  },
-  {
-    id: 2,
-    name: "Sarah Smith",
-    role: "Designer",
-    dept: "Design",
-    status: "Active",
-  },
-  {
-    id: 3,
-    name: "Mike Johnson",
-    role: "HR Manager",
-    dept: "Human Resources",
-    status: "Active",
-  },
-  {
-    id: 4,
-    name: "Emma Wilson",
-    role: "Developer",
-    dept: "Development",
-    status: "Away",
-  },
-];
-
-const mockTasks = [
-  {
-    id: 1,
-    name: "Update Dashboard UI",
-    employee: "John Doe",
-    status: "In Progress",
-  },
-  {
-    id: 2,
-    name: "Database Migration",
-    employee: "Sarah Smith",
-    status: "Completed",
-  },
-  {
-    id: 3,
-    name: "Client Meeting Prep",
-    employee: "Mike Johnson",
-    status: "Pending",
-  },
-];
-
-const mockProjects = [
-  { id: 1, title: "Website Redesign", progress: 75, tasks: 12, completed: 9 },
-  {
-    id: 2,
-    title: "Mobile App Development",
-    progress: 45,
-    tasks: 20,
-    completed: 9,
-  },
-  { id: 3, title: "Marketing Campaign", progress: 90, tasks: 8, completed: 7 },
-  {
-    id: 4,
-    title: "Database Optimization",
-    progress: 30,
-    tasks: 15,
-    completed: 5,
-  },
-];
+/* Helper */
+function formatDate(d) {
+  if (!d) return "";
+  try {
+    const date = new Date(d);
+    return date.toLocaleDateString("en-US");
+  } catch {
+    return d;
+  }
+}
 
 const menuItems = [
-  { id: "dashboard", label: "Dashboard", icon: "📊" },
-  { id: "addUser", label: "Add User/HR", icon: "➕" },
-  { id: "manageUsers", label: "Manage Users", icon: "👥" },
   { id: "assignTask", label: "Assign Tasks", icon: "📋" },
   { id: "projectStatus", label: "Project Status", icon: "📁" },
-  { id: "teamChat", label: "Team Chat", icon: "💬" },
-  { id: "adminChat", label: "Admin Support", icon: "🛡️" },
 ];
 
 const stats = [
-  { title: "Total Employees", value: "24", icon: "👥" },
-  { title: "Active Tasks", value: "38", icon: "📋" },
-  { title: "Projects", value: "12", icon: "📁" },
-  { title: "Completed", value: "156", icon: "📊" },
+  { title: "Total Employees", value: "0", icon: "👥" },
+  { title: "Active Tasks", value: "0", icon: "📋" },
+  { title: "Projects", value: "0", icon: "📁" },
+  { title: "Completed", value: "0", icon: "📊" },
 ];
 
-const teams = [
-  { name: "Development Team", progress: 85 },
-  { name: "Design Team", progress: 72 },
-  { name: "Marketing Team", progress: 90 },
-];
+function BackButton({ onBack }) {
+  const navigate = useNavigate();
+  const handleBackToSystemAdmin = () => {
+    if (onBack && typeof onBack === "function") {
+      onBack();
+    } else {
+      navigate("/admin");
+    }
+  };
 
-function DashboardContent() {
+  return (
+    <button className="back-to-admin-btn" onClick={handleBackToSystemAdmin}>
+      ↩️ Back to System Admin
+    </button>
+  );
+}
+
+function DashboardContent({ stats }) {
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <h2 className="page-title">Dashboard Overview</h2>
@@ -116,232 +64,274 @@ function DashboardContent() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
 
-      <div className="content-grid" style={{ flex: 1, minHeight: 0 }}>
-        <div className="card">
-          <h3 className="card-title">Recent Tasks</h3>
-          <div className="task-list">
-            {mockTasks.map((task) => (
-              <div key={task.id} className="task-item">
-                <div>
-                  <p className="task-name">{task.name}</p>
-                  <p className="task-employee">{task.employee}</p>
-                </div>
-                <span
-                  className={`status-badge status-${task.status
-                    .toLowerCase()
-                    .replace(" ", "-")}`}
-                >
-                  {task.status}
-                </span>
-              </div>
-            ))}
+/* Project status with safer grouping when project_id may be populated object */
+function ProjectStatusContent({ tasks, usersMap }) {
+  // Build groups with stable string keys and optional project meta
+  const groupsMap = new Map();
+
+  tasks.forEach((t) => {
+    // Determine project id string
+    let pid = "Unassigned Project";
+    let meta = null;
+
+    if (t.project_id) {
+      if (typeof t.project_id === "object") {
+        pid = t.project_id._id || t.project_id.id || JSON.stringify(t.project_id);
+        meta = {
+          title: t.project_id.title || t.project_id.name || pid,
+          description: t.project_id.description || "",
+        };
+      } else {
+        pid = String(t.project_id);
+      }
+    } else if (t.project) {
+      pid = String(t.project);
+    }
+
+    if (!groupsMap.has(pid)) groupsMap.set(pid, { tasks: [], meta });
+    groupsMap.get(pid).tasks.push(t);
+  });
+
+  const entries = Array.from(groupsMap.entries());
+
+  return (
+    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      <h2 className="page-title">Project & Task Status</h2>
+      <div className="content-grid" style={{ flex: 1 }}>
+        {entries.length === 0 && (
+          <div className="card">
+            <h3 className="card-title">No projects / tasks found</h3>
+            <p>Sync your backend or assign a task to see it listed here.</p>
           </div>
-        </div>
+        )}
 
-        <div className="card">
-          <h3 className="card-title">Team Performance</h3>
-          <div className="performance-list">
-            {teams.map((team, index) => (
-              <div key={index} className="performance-item">
+        {entries.map(([projectId, { tasks: projectTasks, meta }]) => {
+          const total = projectTasks.length;
+          const completed = projectTasks.filter(
+            (p) => (p.status || "").toLowerCase() === "completed" || (p.status || "").toLowerCase() === "done"
+          ).length;
+          const progress = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+          // project display title: prefer populated meta.title
+          const projectTitle = (meta && meta.title) ? meta.title : projectId;
+
+          return (
+            <div key={projectId} className="project-card">
+              <h3 className="project-title">{projectTitle}</h3>
+
+              {meta && meta.description && (
+                <div style={{ marginBottom: 8, color: "#374151" }}>
+                  {meta.description}
+                </div>
+              )}
+
+              <div className="project-progress" style={{ marginBottom: 12 }}>
                 <div className="performance-header">
-                  <span className="performance-name">{team.name}</span>
-                  <span className="performance-value">{team.progress}%</span>
+                  <span className="performance-name">Progress</span>
+                  <span className="performance-value">{progress}%</span>
                 </div>
                 <div className="progress-bar-bg">
                   <div
                     className="progress-bar-fill"
-                    style={{ width: `${team.progress}%` }}
+                    style={{ width: `${progress}%` }}
                   ></div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
+
+              <div style={{ marginTop: 12 }}>
+                <strong>Tasks ({total}):</strong>
+                <div style={{ marginTop: 8 }}>
+                  {projectTasks.map((t) => (
+                    <div
+                      key={t._id || t.id || `${projectId}-${t.title}`}
+                      style={{
+                        padding: "8px 10px",
+                        borderRadius: 8,
+                        background: "#f9fafb",
+                        marginBottom: 8,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <div style={{ maxWidth: "70%" }}>
+                        <div style={{ fontWeight: 600 }}>{t.title}</div>
+                        <div style={{ fontSize: 12, color: "#6b7280" }}>
+                          {t.description ? `${t.description.substring(0, 160)} ` : ""}
+                          • Due: {formatDate(t.due_date || t.dueDate)}
+                        </div>
+                        <div style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>
+                          Assigned to:&nbsp;
+                          {Array.isArray(t.assigned_to)
+                            ? t.assigned_to
+                                .map((a) => {
+                                  // If populated, a is object; otherwise string id
+                                  if (typeof a === "object") {
+                                    return a.full_name || a.email || (a._id || a.id);
+                                  }
+                                  // try usersMap
+                                  const u = usersMap[String(a)];
+                                  return u ? u.full_name || u.email : String(a);
+                                })
+                                .join(", ")
+                            : typeof t.assigned_to === "object" && t.assigned_to
+                            ? t.assigned_to.full_name || t.assigned_to.email
+                            : (usersMap[String(t.assigned_to)]?.full_name ||
+                                usersMap[String(t.assigned_to)]?.email ||
+                                (t.assigned_to || "—"))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <span
+                          className={`status-badge status-${((t.status || "pending").toLowerCase()).replace(" ", "-")}`}
+                        >
+                          {t.status || "pending"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function AddUserContent() {
-  const [newUser, setNewUser] = useState({
-    name: "",
-    email: "",
-    role: "",
-    department: "",
-  });
-
-  function handleAddUser(event) {
-    event.preventDefault();
-    console.log("New User:", newUser);
-    alert("User added successfully!");
-    setNewUser({ name: "", email: "", role: "", department: "" });
-  }
-
-  return (
-    <div className="form-container">
-      <h2 className="page-title">Add New User or HR</h2>
-      <div className="card form-card">
-        <form onSubmit={handleAddUser}>
-          <div className="form-group">
-            <label className="form-label">
-              <b>Full Name</b>
-            </label>
-            <input
-              type="text"
-              className="form-input"
-              placeholder="Enter full name"
-              value={newUser.name}
-              onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">
-              <b>Email</b>
-            </label>
-            <input
-              type="email"
-              className="form-input"
-              placeholder="email@company.com"
-              value={newUser.email}
-              onChange={(e) =>
-                setNewUser({ ...newUser, email: e.target.value })
-              }
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">
-              <b>Role</b>
-            </label>
-            <select
-              className="form-input"
-              value={newUser.role}
-              onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-              required
-            >
-              <option value="">Select Role</option>
-              <option value="Employee">Employee</option>
-              <option value="HR Manager">HR Manager</option>
-              <option value="Team Lead">Team Lead</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">
-              <b>Department</b>
-            </label>
-            <select
-              className="form-input"
-              value={newUser.department}
-              onChange={(e) =>
-                setNewUser({ ...newUser, department: e.target.value })
-              }
-              required
-            >
-              <option value="">Select Department</option>
-              <option value="Development">Development</option>
-              <option value="Design">Design</option>
-              <option value="Marketing">Marketing</option>
-              <option value="Human Resources">Human Resources</option>
-            </select>
-          </div>
-
-          <button type="submit" className="btn-primary">
-            Add User
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function ManageUsersContent() {
-  function handleEdit(name) {
-    console.log("Edit user:", name);
-    alert(`Editing ${name}`);
-  }
-
-  function handleRemove(name) {
-    console.log("Remove user:", name);
-    if (window.confirm(`Are you sure you want to remove ${name}?`)) {
-      alert(`${name} has been removed`);
-    }
-  }
-
+/* MyTasks view for employees */
+function MyTasksView({ myTasks, usersMap }) {
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      <h2 className="page-title">Manage Users & HR</h2>
-      <div className="card table-card" style={{ flex: 1 }}>
-        <table className="users-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Role</th>
-              <th>Department</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {mockUsers.map((user) => (
-              <tr key={user.id} className="user-row">
-                <td>{user.name}</td>
-                <td>{user.role}</td>
-                <td>{user.dept}</td>
-                <td>
-                  <span
-                    className={`status-badge status-${user.status.toLowerCase()}`}
-                  >
-                    {user.status}
+      <h2 className="page-title">My Tasks</h2>
+      <div className="content-grid" style={{ flex: 1 }}>
+        {myTasks.length === 0 ? (
+          <div className="card">
+            <h3 className="card-title">No tasks assigned to you</h3>
+            <p>When your manager assigns tasks they will appear here.</p>
+          </div>
+        ) : (
+          myTasks.map((t) => (
+            <div key={t._id || t.id} className="project-card">
+              <h3 className="project-title">{t.title}</h3>
+              <div style={{ marginBottom: 8 }}>{t.description}</div>
+              <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+                <div>Due: {formatDate(t.due_date || t.dueDate)}</div>
+                <div>
+                  Status:{" "}
+                  <span className={`status-badge status-${((t.status || "pending").toLowerCase()).replace(" ", "-")}`}>
+                    {t.status || "pending"}
                   </span>
-                </td>
-                <td className="actions-cell">
-                  <button
-                    onClick={() => handleEdit(user.name)}
-                    className="action-btn edit-btn"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleRemove(user.name)}
-                    className="action-btn delete-btn"
-                  >
-                    Remove
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </div>
+              </div>
+              <div style={{ marginTop: 12, fontSize: 13, color: "#6b7280" }}>
+                Assigned by:{" "}
+                {t.assigned_by?.full_name || usersMap[t.assigned_by]?.full_name || t.assigned_by || "—"}
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
 }
 
-function AssignTaskContent() {
+/* Assign Task UI unchanged except it re-uses backend employees endpoint */
+function AssignTaskContent({ refreshAfterCreate }) {
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
-    assignTo: "",
+    contributors: [],
+    teamLead: "",
     priority: "",
     dueDate: "",
   });
 
-  function handleAssignTask(event) {
+  const [assignees, setAssignees] = useState([]);
+  const [loadingAssignees, setLoadingAssignees] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function loadAssignees() {
+      try {
+        setLoadingAssignees(true);
+        const data = await apiGet("/api/tasks/employees/all");
+        const list = Array.isArray(data) ? data : data.users || [];
+        setAssignees(list);
+      } catch (err) {
+        console.error("Failed to load assignees:", err);
+        setAssignees([]);
+      } finally {
+        setLoadingAssignees(false);
+      }
+    }
+    loadAssignees();
+  }, []);
+
+  function handleContributorsChange(e) {
+    const selected = Array.from(e.target.selectedOptions).map((o) => o.value);
+    const unique = Array.from(new Set(selected));
+    setNewTask((prev) => ({
+      ...prev,
+      contributors: unique,
+      teamLead: unique.includes(prev.teamLead) ? prev.teamLead : "",
+    }));
+  }
+
+  async function handleAssignTask(event) {
     event.preventDefault();
-    console.log("New Task:", newTask);
-    alert("Task assigned successfully!");
-    setNewTask({
-      title: "",
-      description: "",
-      assignTo: "",
-      priority: "",
-      dueDate: "",
-    });
+
+    if (!newTask.title.trim()) {
+      alert("Task title is required");
+      return;
+    }
+    if (!newTask.contributors || newTask.contributors.length === 0) {
+      alert("Please select at least one assignee (contributor)");
+      return;
+    }
+
+    const payload = {
+      project_id: "6918554e8be5641507dd881b",
+      assigned_to:
+        newTask.contributors.length === 1
+          ? newTask.contributors[0]
+          : newTask.contributors,
+      contributors: newTask.contributors,
+      team_lead: newTask.teamLead || newTask.contributors[0] || null,
+      title: newTask.title,
+      description: newTask.description,
+      due_date: newTask.dueDate || undefined,
+      priority: newTask.priority || undefined,
+    };
+
+    try {
+      setSubmitting(true);
+      setError("");
+      const data = await apiPost("/api/tasks", payload);
+      alert("Task assigned successfully!");
+      setNewTask({
+        title: "",
+        description: "",
+        contributors: [],
+        teamLead: "",
+        priority: "",
+        dueDate: "",
+      });
+      if (typeof refreshAfterCreate === "function") refreshAfterCreate();
+    } catch (err) {
+      console.error("Assign task error:", err);
+      setError(err.message || "Failed to assign task");
+      alert("Error assigning task: " + (err.message || ""));
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -376,28 +366,63 @@ function AssignTaskContent() {
               onChange={(e) =>
                 setNewTask({ ...newTask, description: e.target.value })
               }
-              required
             ></textarea>
           </div>
 
           <div className="form-group">
             <label className="form-label">
-              <b>Assign To</b>
+              <b>Assign To (hold Ctrl/Cmd to select multiple)</b>
+            </label>
+
+            <select
+              className="form-input"
+              multiple
+              value={newTask.contributors}
+              onChange={handleContributorsChange}
+              required
+              size={Math.min(8, Math.max(4, assignees.length))}
+            >
+              {loadingAssignees ? (
+                <option value="">Loading...</option>
+              ) : assignees.length === 0 ? (
+                <option value="">No assignees available</option>
+              ) : (
+                assignees.map((user) => (
+                  <option key={user._id} value={user._id}>
+                    {user.full_name} — {user.email}
+                  </option>
+                ))
+              )}
+            </select>
+            <small style={{ display: "block", marginTop: 8, color: "#6b7280" }}>
+              You can select multiple contributors. One of them will be the team
+              leader.
+            </small>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              <b>Team Leader (optional)</b>
             </label>
             <select
               className="form-input"
-              value={newTask.assignTo}
+              value={newTask.teamLead}
               onChange={(e) =>
-                setNewTask({ ...newTask, assignTo: e.target.value })
+                setNewTask({ ...newTask, teamLead: e.target.value })
               }
-              required
             >
-              <option value="">Select Employee</option>
-              {mockUsers.map((user) => (
-                <option key={user.id} value={user.name}>
-                  {user.name}
-                </option>
-              ))}
+              <option value="">
+                (use first selected contributor by default)
+              </option>
+              {newTask.contributors.map((id) => {
+                const user = assignees.find((u) => u._id === id);
+                if (!user) return null;
+                return (
+                  <option key={user._id} value={user._id}>
+                    {user.full_name} — {user.email}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
@@ -412,7 +437,6 @@ function AssignTaskContent() {
                 onChange={(e) =>
                   setNewTask({ ...newTask, priority: e.target.value })
                 }
-                required
               >
                 <option value="">Select Priority</option>
                 <option value="Low">Low</option>
@@ -432,13 +456,14 @@ function AssignTaskContent() {
                 onChange={(e) =>
                   setNewTask({ ...newTask, dueDate: e.target.value })
                 }
-                required
               />
             </div>
           </div>
 
-          <button type="submit" className="btn-primary">
-            Assign Task
+          {error && <p style={{ color: "red" }}>{error}</p>}
+
+          <button type="submit" className="btn-primary" disabled={submitting}>
+            {submitting ? "Assigning..." : "Assign Task"}
           </button>
         </form>
       </div>
@@ -446,188 +471,16 @@ function AssignTaskContent() {
   );
 }
 
-function ProjectStatusContent() {
-  return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      <h2 className="page-title">Project & Task Status</h2>
-      <div className="content-grid" style={{ flex: 1 }}>
-        {mockProjects.map((project) => (
-          <div key={project.id} className="project-card">
-            <h3 className="project-title">{project.title}</h3>
-            <div className="project-progress">
-              <div className="performance-header">
-                <span className="performance-name">Progress</span>
-                <span className="performance-value">{project.progress}%</span>
-              </div>
-              <div className="progress-bar-bg">
-                <div
-                  className="progress-bar-fill"
-                  style={{ width: `${project.progress}%` }}
-                ></div>
-              </div>
-            </div>
-            <div className="project-stats">
-              <span>Tasks: {project.tasks}</span>
-              <span>Completed: {project.completed}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function TeamChatContent() {
-  const [chatMessage, setChatMessage] = useState("");
-
-  const messages = [
-    {
-      name: "John Doe",
-      message: "The dashboard update is complete!",
-      time: "10:30 AM",
-      isOwn: false,
-    },
-    {
-      name: "You",
-      message: "Great work! Can you show it in the next meeting?",
-      time: "10:32 AM",
-      isOwn: true,
-    },
-    {
-      name: "Sarah Smith",
-      message: "I've uploaded the new design mockups",
-      time: "10:45 AM",
-      isOwn: false,
-    },
-  ];
-
-  function handleSendMessage(event) {
-    event.preventDefault();
-    console.log("Message sent:", chatMessage);
-    setChatMessage("");
-  }
-
-  return (
-    <div className="chat-container">
-      <h2 className="page-title">Team Chat</h2>
-      <div className="card chat-card">
-        <div className="chat-messages">
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`chat-message ${
-                msg.isOwn ? "own-message" : "other-message"
-              }`}
-            >
-              <div
-                className={`message-bubble ${
-                  msg.isOwn ? "own-bubble" : "other-bubble"
-                }`}
-              >
-                <p className="message-sender">{msg.name}</p>
-                <p className="message-text">{msg.message}</p>
-                <p className="message-time">{msg.time}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <form onSubmit={handleSendMessage} className="chat-input-container">
-          <input
-            type="text"
-            placeholder="Type a message..."
-            className="chat-input"
-            value={chatMessage}
-            onChange={(e) => setChatMessage(e.target.value)}
-            required
-          />
-          <button type="submit" className="btn-send">
-            Send
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function AdminChatContent() {
-  const [chatMessage, setChatMessage] = useState("");
-
-  const messages = [
-    {
-      name: "System Admin",
-      message: "Hello! How can I help you today?",
-      time: "9:00 AM",
-      isOwn: false,
-    },
-    {
-      name: "You",
-      message: "I need help with user permissions",
-      time: "9:05 AM",
-      isOwn: true,
-    },
-    {
-      name: "System Admin",
-      message: "I'll guide you through the process",
-      time: "9:06 AM",
-      isOwn: false,
-    },
-  ];
-
-  function handleSendMessage(event) {
-    event.preventDefault();
-    console.log("Message sent:", chatMessage);
-    setChatMessage("");
-  }
-
-  return (
-    <div className="chat-container">
-      <h2 className="page-title">Admin Support</h2>
-      <div className="card chat-card">
-        <div className="chat-messages">
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`chat-message ${
-                msg.isOwn ? "own-message" : "other-message"
-              }`}
-            >
-              <div
-                className={`message-bubble ${
-                  msg.isOwn ? "own-bubble" : "other-bubble"
-                }`}
-              >
-                <p className="message-sender">{msg.name}</p>
-                <p className="message-text">{msg.message}</p>
-                <p className="message-time">{msg.time}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <form onSubmit={handleSendMessage} className="chat-input-container">
-          <input
-            type="text"
-            placeholder="Message admin..."
-            className="chat-input"
-            value={chatMessage}
-            onChange={(e) => setChatMessage(e.target.value)}
-            required
-          />
-          <button type="submit" className="btn-send">
-            Send
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-// Sidebar Component
-function Sidebar({ sidebarOpen, menuItems, activeTab, setActiveTab }) {
+/* Sidebar / Header components reused from previous layout */
+function Sidebar({ sidebarOpen, menuItems, activeTab, setActiveTab, onBack }) {
   return (
     <div className={`sidebar ${sidebarOpen ? "open" : "closed"}`}>
       <div className="sidebar-header">
         <h1 className="logo">TaskManager</h1>
         <p className="subtitle">Manager Portal</p>
+        <div className="back-button-container">
+          <BackButton onBack={onBack} />
+        </div>
       </div>
 
       <nav className="sidebar-nav">
@@ -646,8 +499,7 @@ function Sidebar({ sidebarOpen, menuItems, activeTab, setActiveTab }) {
   );
 }
 
-// Header Component
-function Header({ sidebarOpen, setSidebarOpen }) {
+function Header({ sidebarOpen, setSidebarOpen, onBack }) {
   return (
     <header className="header">
       <div className="header-left">
@@ -668,6 +520,7 @@ function Header({ sidebarOpen, setSidebarOpen }) {
           <span>🔔</span>
           <span className="notification-badge"></span>
         </button>
+        <BackButton onBack={onBack} />
         <div className="user-profile">
           <div className="avatar">MG</div>
           <div className="user-info">
@@ -680,36 +533,154 @@ function Header({ sidebarOpen, setSidebarOpen }) {
   );
 }
 
-export default function TaskManagementSystem() {
-  const [activeTab, setActiveTab] = useState("dashboard");
+export default function TaskManagementSystem({ onBack }) {
+  const [activeTab, setActiveTab] = useState("assignTask");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const navigate = useNavigate();
 
-  // Prevent body scrolling
+  // data
+  const [tasks, setTasks] = useState([]);
+  const [loadingTasks, setLoadingTasks] = useState(false);
+  const [usersMap, setUsersMap] = useState({});
+  const [statsState, setStatsState] = useState(stats);
+
+  // detect current user
+  const storedUser =
+    typeof window !== "undefined" ? localStorage.getItem("user") : null;
+  let currentUser = null;
+  try {
+    currentUser = storedUser ? JSON.parse(storedUser) : null;
+  } catch {
+    currentUser = null;
+  }
+
+  async function loadTasks() {
+    try {
+      setLoadingTasks(true);
+      const isEmployee =
+        currentUser &&
+        currentUser.role &&
+        ["employee", "person"].includes(currentUser.role);
+      const path = isEmployee ? "/api/tasks/my" : "/api/tasks";
+      let data;
+      try {
+        data = await apiGet(path);
+      } catch (err) {
+        console.warn("Primary tasks endpoint failed, falling back to /api/tasks:", err.message);
+        data = await apiGet("/api/tasks");
+      }
+
+      const list = Array.isArray(data) ? data : data.tasks || data || [];
+      setTasks(list || []);
+
+      const total = list.length;
+      const completed = list.filter(
+        (t) => (t.status || "").toLowerCase() === "completed" || (t.status || "").toLowerCase() === "done"
+      ).length;
+      const projects = Array.from(new Set(list.map((t) => t.project_id && (typeof t.project_id === "object" ? (t.project_id._id || t.project_id.id) : t.project_id) || t.project || "Unassigned"))).length;
+
+      setStatsState([
+        {
+          title: "Total Employees",
+          value: String(
+            Array.from(
+              new Set(
+                list
+                  .reduce((acc, t) => {
+                    const assigned = Array.isArray(t.assigned_to)
+                      ? t.assigned_to
+                      : t.assigned_to
+                      ? [t.assigned_to]
+                      : [];
+                    return acc.concat(assigned);
+                  }, [])
+                  .filter(Boolean)
+              )
+            ).length
+          ),
+          icon: "👥",
+        },
+        {
+          title: "Active Tasks",
+          value: String(
+            list.filter(
+              (t) => t.status && t.status.toLowerCase() !== "completed" && t.status.toLowerCase() !== "done"
+            ).length
+          ),
+          icon: "📋",
+        },
+        { title: "Projects", value: String(projects), icon: "📁" },
+        { title: "Completed", value: String(completed), icon: "📊" },
+      ]);
+    } catch (err) {
+      console.error("Failed to load tasks:", err);
+      setTasks([]);
+    } finally {
+      setLoadingTasks(false);
+    }
+  }
+
+  async function loadUsersMap() {
+    try {
+      const data = await apiGet("/auth/users");
+      const list = data.users || data || [];
+      const map = {};
+      (Array.isArray(list) ? list : []).forEach((u) => {
+        map[u._id || u.id] = u;
+      });
+      setUsersMap(map);
+    } catch (err) {
+      console.warn("Failed to load users map:", err.message);
+    }
+  }
+
   useEffect(() => {
+    loadTasks();
+    loadUsersMap();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = "unset";
+      document.body.style.overflow = prev || "unset";
     };
   }, []);
 
   function renderContent() {
+    const isEmployee =
+      currentUser &&
+      currentUser.role &&
+      ["employee", "person"].includes(currentUser.role);
+
+    if (isEmployee) {
+      const myId = currentUser.id || currentUser._id || currentUser.id;
+      const myTasks = tasks.filter((t) => {
+        if (!t) return false;
+        if (Array.isArray(t.assigned_to)) {
+          return t.assigned_to.some((a) => {
+            const aid = typeof a === "string" ? a : a?._id || a?.id;
+            return String(aid) === String(myId);
+          });
+        }
+        if (typeof t.assigned_to === "object" && t.assigned_to) {
+          const aid = t.assigned_to._id || t.assigned_to.id;
+          return String(aid) === String(myId);
+        }
+        return String(t.assigned_to) === String(myId);
+      });
+
+      return <MyTasksView myTasks={myTasks} usersMap={usersMap} />;
+    }
+
     switch (activeTab) {
-      case "dashboard":
-        return <DashboardContent />;
-      case "addUser":
-        return <AddUserContent />;
-      case "manageUsers":
-        return <ManageUsersContent />;
       case "assignTask":
-        return <AssignTaskContent />;
+        return <AssignTaskContent refreshAfterCreate={loadTasks} />;
       case "projectStatus":
-        return <ProjectStatusContent />;
-      case "teamChat":
-        return <TeamChatContent />;
-      case "adminChat":
-        return <AdminChatContent />;
+        return <ProjectStatusContent tasks={tasks} usersMap={usersMap} />;
       default:
-        return <DashboardContent />;
+        return <DashboardContent stats={statsState} />;
     }
   }
 
@@ -720,11 +691,61 @@ export default function TaskManagementSystem() {
         menuItems={menuItems}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        onBack={onBack}
       />
 
       <div className="main-container">
-        <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-        <main className="content">{renderContent()}</main>
+        <Header
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          onBack={onBack}
+        />
+        <main className="content">
+          <div
+            className="content-header"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <button
+              className="back-to-admin-btn content-back-btn"
+              onClick={() => (onBack ? onBack() : navigate("/admin"))}
+            >
+              ↩️ Back to System Admin Dashboard
+            </button>
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                className={`nav-button ${activeTab === "assignTask" ? "active" : ""}`}
+                onClick={() => setActiveTab("assignTask")}
+              >
+                Assign Tasks
+              </button>
+              <button
+                className={`nav-button ${activeTab === "projectStatus" ? "active" : ""}`}
+                onClick={() => setActiveTab("projectStatus")}
+              >
+                Project Status
+              </button>
+              <button
+                className={`nav-button ${activeTab === "dashboard" ? "active" : ""}`}
+                onClick={() => setActiveTab("dashboard")}
+              >
+                Dashboard
+              </button>
+            </div>
+          </div>
+
+          {loadingTasks ? (
+            <div style={{ padding: 24 }}>
+              <h3>Loading tasks...</h3>
+            </div>
+          ) : (
+            renderContent()
+          )}
+        </main>
       </div>
     </div>
   );

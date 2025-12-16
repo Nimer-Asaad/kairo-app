@@ -6,9 +6,7 @@ body,
   height: 100%;
   margin: 0;
   padding: 0;
- /* overflow: hidden;*/
-   overflow-y: auto; /* خلي السكروول شغال ✅ */
-
+  overflow-y: auto;
 }
 
 * {
@@ -506,21 +504,6 @@ body,
   background-color: #2563eb;
 }
 
-.btn-send {
-  padding: 8px 24px;
-  background-color: #3b82f6;
-  color: white;
-  border-radius: 8px;
-  border: none;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.btn-send:hover {
-  background-color: #2563eb;
-}
-
 /* Table Styles */
 .table-card {
   padding: 0;
@@ -644,106 +627,6 @@ body,
   margin-top: auto;
 }
 
-/* Chat Styles */
-.chat-container {
-  max-width: 896px;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.chat-card {
-  padding: 0;
-  overflow: hidden;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.chat-messages {
-  flex: 1;
-  padding: 24px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-height: 0;
-}
-
-.chat-message {
-  display: flex;
-}
-
-.chat-message.own-message {
-  justify-content: flex-end;
-}
-
-.chat-message.other-message {
-  justify-content: flex-start;
-}
-
-.message-bubble {
-  max-width: 384px;
-  border-radius: 8px;
-  padding: 12px;
-}
-
-.own-bubble {
-  background-color: #3b82f6;
-  color: white;
-}
-
-.other-bubble {
-  background-color: #f3f4f6;
-  color: #1f2937;
-}
-
-.message-sender {
-  font-size: 12px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.message-text {
-  font-size: 14px;
-  margin-bottom: 4px;
-}
-
-.message-time {
-  font-size: 12px;
-  margin-top: 4px;
-}
-
-.own-bubble .message-time {
-  color: #dbeafe;
-}
-
-.other-bubble .message-time {
-  color: #6b7280;
-}
-
-.chat-input-container {
-  border-top: 1px solid #e5e7eb;
-  padding: 16px;
-  display: flex;
-  gap: 12px;
-  flex-shrink: 0;
-}
-
-.chat-input {
-  flex: 1;
-  padding: 8px 16px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  outline: none;
-  transition: all 0.2s;
-}
-
-.chat-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
 /* Responsive Design */
 @media (max-width: 768px) {
   .stats-grid {
@@ -778,5 +661,99 @@ body,
 
   .content {
     padding: 16px;
+  }
+}
+
+/* Remove chat-related styles */
+.chat-container,
+.chat-card,
+.chat-messages,
+.chat-message,
+.message-bubble,
+.chat-input-container,
+.chat-input,
+.btn-send {
+  display: none;
+}
+
+/* ===== أنماط زر الرجوع إلى System Admin ===== */
+
+.back-to-admin-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(102, 126, 234, 0.2);
+  white-space: nowrap;
+}
+
+.back-to-admin-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(102, 126, 234, 0.3);
+  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+}
+
+.back-to-admin-btn:active {
+  transform: translateY(0);
+}
+
+/* زر الرجوع في الـ Sidebar */
+.sidebar-header .back-button-container {
+  margin-top: 15px;
+  padding: 0 5px;
+}
+
+.sidebar-header .back-to-admin-btn {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 13px;
+  justify-content: center;
+}
+
+/* زر الرجوع في الـ Header */
+.header-right .back-to-admin-btn {
+  margin-right: 15px;
+  padding: 8px 16px;
+}
+
+/* زر الرجوع في المحتوى الرئيسي */
+.content-header {
+  margin-bottom: 20px;
+}
+
+.content-back-btn {
+  margin-bottom: 15px;
+  padding: 12px 24px;
+  font-size: 15px;
+  border-radius: 10px;
+}
+
+/* تحسين التوافق مع التصميم الحالي */
+@media (max-width: 768px) {
+  .header-right .back-to-admin-btn {
+    display: none; /* إخفاءه في الهواتف من الـ Header */
+  }
+
+  .sidebar-header .back-button-container {
+    display: block;
+  }
+
+  .content-back-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (min-width: 769px) {
+  .sidebar-header .back-button-container {
+    display: none; /* إخفاءه من الـ Sidebar في الشاشات الكبيرة */
   }
 }
