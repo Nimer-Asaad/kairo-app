@@ -6,6 +6,7 @@ import { initDB } from "./db/dbManager.js";
 import authRoutes from "./routes/authRoutes.js";
 import gmailRoutes from "./routes/gmailRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
+import taskRoutes from "./routes/taskRoutes.js";
 
 dotenv.config();
 
@@ -32,6 +33,8 @@ app.use("/auth", authRoutes);
 // Gmail + AI routes
 app.use("/gmail", gmailRoutes);
 app.use("/ai", aiRoutes);
+
+app.use("/api/tasks", taskRoutes);
 
 // start server with auto-fallback DB
 const PORT = process.env.PORT || 5000;

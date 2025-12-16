@@ -124,6 +124,29 @@ router.get("/users", auth, async (req, res) => {
   }
 });
 
+// GET /auth/user/:id  --> return minimal public info for a user id
+// This endpoint is protected (requires authentication). It returns id, full_name, email, role.
+// Useful for frontend to resolve ObjectId -> display name when task records only include IDs.
+router.get("/user/:id", auth, async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!id) return res.status(400).json({ message: "Missing user id" });
+
+    const user = await dbManager.findUserById(id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Only expose safe fields
+    res.json({
+      id: user._id,
+      full_name: user.full_name,
+      email: user.email,
+      role: user.role,
+    });
+  } catch (err) {
+    console.error("Get user by id error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 // POST /auth/create-user  --> الأدمن ينشئ HR / Employee / Manager
 router.post("/create-user", auth, async (req, res) => {
@@ -133,15 +156,8 @@ router.post("/create-user", auth, async (req, res) => {
       return res.status(403).json({ message: "Not allowed" });
     }
 
-    const {
-      full_name,
-      email,
-      role,
-      password,
-      phone,
-      address,
-      is_active,
-    } = req.body;
+    const { full_name, email, role, password, phone, address, is_active } =
+      req.body;
 
     if (!full_name || !email || !role) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -189,6 +205,5 @@ router.post("/create-user", auth, async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-
 
 export default router;
